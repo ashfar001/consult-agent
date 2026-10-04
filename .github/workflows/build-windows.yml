@@ -1,0 +1,43 @@
+name: Build Windows agent
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      mock_api:
+        description: Build with MOCK_API=true
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: agent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.4
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - run: flutter analyze
+      - run: flutter test
+
+      - name: Build
+        shell: bash
+        run: |
+          MOCK="${{ github.event_name == 'workflow_dispatch' && inputs.mock_api || 'true' }}"
+          flutter build windows --release --dart-define=MOCK_API=$MOCK
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ConsultAgent-windows-x64
+          path: agent/build/windows/x64/runner/Release/
+          retention-days: 14
