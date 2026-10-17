@@ -12,23 +12,21 @@ class HttpApiClient implements ApiClient {
   String? token;
 
   Never _todo() => throw UnimplementedError(
-        'HttpApiClient is not implemented yet; set MOCK_API=true',
-      );
+    'HttpApiClient is not implemented yet; set MOCK_API=true',
+  );
 
   @override
   Future<DeviceStatus> registerDevice({
     required String pcName,
     required String deviceId,
-  }) =>
-      _todo();
+  }) => _todo();
 
   @override
   Future<LoginResult> login({
     required String employeeId,
     required String pin,
     required String deviceId,
-  }) =>
-      _todo();
+  }) => _todo();
 
   @override
   Future<List<Project>> myProjects() => _todo();
@@ -39,8 +37,7 @@ class HttpApiClient implements ApiClient {
     required String projectId,
     required String taskId,
     required DateTime startedAt,
-  }) =>
-      _todo();
+  }) => _todo();
 
   @override
   Future<HeartbeatAck> sendHeartbeats(List<Heartbeat> heartbeats) => _todo();
@@ -50,8 +47,7 @@ class HttpApiClient implements ApiClient {
     required String sessionId,
     required DateTime endedAt,
     required bool unclean,
-  }) =>
-      _todo();
+  }) => _todo();
 
   @override
   Future<List<RemoteFile>> projectFiles(String projectId) => _todo();
@@ -68,23 +64,20 @@ class HttpApiClient implements ApiClient {
     required String projectId,
     required String path,
     required int size,
-  }) =>
-      _todo();
+  }) => _todo();
 
   @override
   Future<FileVersionRef> confirmUpload({
     required String uploadId,
     required String note,
-  }) =>
-      _todo();
+  }) => _todo();
 
   @override
   Future<void> completeTask({
     required String clientId,
     required String taskId,
     required String note,
-  }) =>
-      _todo();
+  }) => _todo();
 
   @override
   Future<void> submitDailyReport(DailyReport report) => _todo();

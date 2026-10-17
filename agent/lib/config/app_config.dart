@@ -26,6 +26,8 @@ class AppConfig {
     this.launchPollSecs = 3,
     this.promptRetryMins = 5,
     this.maxUploadFileBytes = 200 * 1024 * 1024,
+    this.adminExitHash = '',
+    this.adminExitSalt = '',
   });
 
   /// Defaults for a machine whose shared data lives under [programDataDir].
@@ -82,6 +84,11 @@ class AppConfig {
   /// Larger files are skipped by the daily backup.
   final int maxUploadFileBytes;
 
+  /// Salted hash of the super-admin exit password (see tool/hash_admin_password.dart).
+  /// Empty means no password is set and the agent cannot be exited from the UI.
+  final String adminExitHash;
+  final String adminExitSalt;
+
   /// Processes whose start raises the project prompt. Demo (mock) builds also
   /// accept Notepad and Paint so the flow can be tried on a PC without CAD.
   Set<String> get triggerApps => mockApi
@@ -104,11 +111,15 @@ class AppConfig {
       companyName: pick('company_name', companyName),
       idleThresholdSecs: pick('idle_threshold_secs', idleThresholdSecs),
       pollIntervalSecs: pick('poll_interval_secs', pollIntervalSecs),
-      heartbeatIntervalSecs:
-          pick('heartbeat_interval_secs', heartbeatIntervalSecs),
+      heartbeatIntervalSecs: pick(
+        'heartbeat_interval_secs',
+        heartbeatIntervalSecs,
+      ),
       projectsRoot: pick('projects_root', projectsRoot),
-      fallbackProjectsRoot:
-          pick('fallback_projects_root', fallbackProjectsRoot),
+      fallbackProjectsRoot: pick(
+        'fallback_projects_root',
+        fallbackProjectsRoot,
+      ),
       dataDir: pick('data_dir', dataDir),
       logDir: pick('log_dir', logDir),
       mockFailureRate: pick('mock_failure_rate', mockFailureRate),
@@ -119,6 +130,8 @@ class AppConfig {
       launchPollSecs: pick('launch_poll_secs', launchPollSecs),
       promptRetryMins: pick('prompt_retry_mins', promptRetryMins),
       maxUploadFileBytes: pick('max_upload_file_bytes', maxUploadFileBytes),
+      adminExitHash: pick('admin_exit_hash', adminExitHash),
+      adminExitSalt: pick('admin_exit_salt', adminExitSalt),
     );
   }
 
@@ -126,23 +139,25 @@ class AppConfig {
       mergeJson(<String, dynamic>{'mock_api': value});
 
   Map<String, dynamic> toJson() => {
-        'api_base_url': apiBaseUrl,
-        'mock_api': mockApi,
-        'company_name': companyName,
-        'idle_threshold_secs': idleThresholdSecs,
-        'poll_interval_secs': pollIntervalSecs,
-        'heartbeat_interval_secs': heartbeatIntervalSecs,
-        'projects_root': projectsRoot,
-        'fallback_projects_root': fallbackProjectsRoot,
-        'data_dir': dataDir,
-        'log_dir': logDir,
-        'mock_failure_rate': mockFailureRate,
-        'mock_latency_ms': mockLatencyMs,
-        'break_allowance_secs': breakAllowanceSecs,
-        'break_max_pieces': breakMaxPieces,
-        'workday_end': workdayEnd,
-        'launch_poll_secs': launchPollSecs,
-        'prompt_retry_mins': promptRetryMins,
-        'max_upload_file_bytes': maxUploadFileBytes,
-      };
+    'api_base_url': apiBaseUrl,
+    'mock_api': mockApi,
+    'company_name': companyName,
+    'idle_threshold_secs': idleThresholdSecs,
+    'poll_interval_secs': pollIntervalSecs,
+    'heartbeat_interval_secs': heartbeatIntervalSecs,
+    'projects_root': projectsRoot,
+    'fallback_projects_root': fallbackProjectsRoot,
+    'data_dir': dataDir,
+    'log_dir': logDir,
+    'mock_failure_rate': mockFailureRate,
+    'mock_latency_ms': mockLatencyMs,
+    'break_allowance_secs': breakAllowanceSecs,
+    'break_max_pieces': breakMaxPieces,
+    'workday_end': workdayEnd,
+    'launch_poll_secs': launchPollSecs,
+    'prompt_retry_mins': promptRetryMins,
+    'max_upload_file_bytes': maxUploadFileBytes,
+    'admin_exit_hash': adminExitHash,
+    'admin_exit_salt': adminExitSalt,
+  };
 }

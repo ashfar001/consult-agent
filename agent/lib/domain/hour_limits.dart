@@ -17,10 +17,10 @@ class HourUsage {
   });
 
   factory HourUsage.ofProject(Project p, {int unsyncedSecs = 0}) => HourUsage(
-        allocatedSecs: (p.myAllocatedHours * 3600).round(),
-        serverUsedSecs: p.myUsedSeconds,
-        unsyncedSecs: unsyncedSecs,
-      );
+    allocatedSecs: (p.myAllocatedHours * 3600).round(),
+    serverUsedSecs: p.myUsedSeconds,
+    unsyncedSecs: unsyncedSecs,
+  );
 
   final int allocatedSecs;
   final int serverUsedSecs;
@@ -57,8 +57,7 @@ class HourUsage {
 
 /// Whether a worker may start (or keep) tracking on [project].
 bool canTrack(Project project, HourUsage usage) =>
-    project.overrunMode == OverrunMode.allow ||
-    usage.level != UsageLevel.over;
+    project.overrunMode == OverrunMode.allow || usage.level != UsageLevel.over;
 
 /// "12h 05m" style formatting for hours displays.
 String formatHm(int secs) {

@@ -16,12 +16,19 @@ Future<MockApiClient> _signedIn() async {
 }
 
 void main() {
-  test('login succeeds with seeded credentials (case-insensitive id)', () async {
-    final api = _reliable();
-    final r = await api.login(employeeId: 'emp001', pin: '1234', deviceId: 'd');
-    expect(r.worker.employeeId, 'EMP001');
-    expect(r.token, isNotEmpty);
-  });
+  test(
+    'login succeeds with seeded credentials (case-insensitive id)',
+    () async {
+      final api = _reliable();
+      final r = await api.login(
+        employeeId: 'emp001',
+        pin: '1234',
+        deviceId: 'd',
+      );
+      expect(r.worker.employeeId, 'EMP001');
+      expect(r.token, isNotEmpty);
+    },
+  );
 
   test('login with wrong PIN is a 401', () async {
     final api = _reliable();
@@ -40,18 +47,22 @@ void main() {
     );
   });
 
-  test('seeds three projects including a near-exhausted block project',
-      () async {
-    final projects = await (await _signedIn()).myProjects();
-    expect(projects.map((p) => p.code), ['KP-101', 'KP-102', 'KP-103']);
-    final block = projects.singleWhere((p) => p.overrunMode == OverrunMode.block);
-    expect(block.myUsedSeconds, lessThan(block.myAllocatedHours * 3600));
-    expect(
-      block.myUsedSeconds,
-      greaterThan(block.myAllocatedHours * 3600 * 0.95),
-    );
-    expect(projects.every((p) => p.tasks.isNotEmpty), isTrue);
-  });
+  test(
+    'seeds three projects including a near-exhausted block project',
+    () async {
+      final projects = await (await _signedIn()).myProjects();
+      expect(projects.map((p) => p.code), ['KP-101', 'KP-102', 'KP-103']);
+      final block = projects.singleWhere(
+        (p) => p.overrunMode == OverrunMode.block,
+      );
+      expect(block.myUsedSeconds, lessThan(block.myAllocatedHours * 3600));
+      expect(
+        block.myUsedSeconds,
+        greaterThan(block.myAllocatedHours * 3600 * 0.95),
+      );
+      expect(projects.every((p) => p.tasks.isNotEmpty), isTrue);
+    },
+  );
 
   test('startSession is idempotent by client id', () async {
     final api = await _signedIn();
@@ -133,7 +144,9 @@ void main() {
     api.offline = true;
     expect(
       api.myProjects(),
-      throwsA(isA<ApiException>().having((e) => e.isRetryable, 'retry', isTrue)),
+      throwsA(
+        isA<ApiException>().having((e) => e.isRetryable, 'retry', isTrue),
+      ),
     );
   });
 

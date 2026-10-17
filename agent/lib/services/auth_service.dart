@@ -12,9 +12,9 @@ class AuthService {
     required SecureStore secureStore,
     required KvDao kv,
     required this.deviceId,
-  })  : _api = api,
-        _secure = secureStore,
-        _kv = kv;
+  }) : _api = api,
+       _secure = secureStore,
+       _kv = kv;
 
   final ApiClient _api;
   final SecureStore _secure;

@@ -23,8 +23,7 @@ void main() {
       employeeId: 'EMP001',
       pin: '1234',
       deviceId: 'd',
-    ))
-        .token;
+    )).token;
     container = ProviderContainer(
       retry: (_, _) => null,
       overrides: [
@@ -110,11 +109,11 @@ void main() {
 }
 
 Heartbeat _hb(String sessionId, DateTime at, int active) => Heartbeat(
-      clientId: 'hb-$sessionId-${at.millisecondsSinceEpoch}',
-      sessionId: sessionId,
-      from: at,
-      to: at.add(Duration(seconds: active)),
-      activeSecs: active,
-      idleSecs: 0,
-      apps: const {},
-    );
+  clientId: 'hb-$sessionId-${at.millisecondsSinceEpoch}',
+  sessionId: sessionId,
+  from: at,
+  to: at.add(Duration(seconds: active)),
+  activeSecs: active,
+  idleSecs: 0,
+  apps: const {},
+);

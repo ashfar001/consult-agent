@@ -57,15 +57,17 @@ class _OpeningScreenState extends ConsumerState<OpeningScreen> {
                   if (selection != null)
                     Text(
                       '${selection.project.name} · ${selection.task.title}',
-                      style: theme.textTheme.bodyLarge
-                          ?.copyWith(color: AppColors.muted),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: AppColors.muted,
+                      ),
                     ),
                   const SizedBox(height: 24),
                   if (s.phase == OpeningPhase.failed)
                     Text(
                       s.error ?? 'Could not open the project.',
-                      style: theme.textTheme.bodyLarge
-                          ?.copyWith(color: AppColors.danger),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: AppColors.danger,
+                      ),
                     )
                   else ...[
                     LinearProgressIndicator(
@@ -79,8 +81,8 @@ class _OpeningScreenState extends ConsumerState<OpeningScreen> {
                       s.phase == OpeningPhase.syncing
                           ? 'Getting latest files… ${s.current}'
                           : s.phase == OpeningPhase.done
-                              ? 'Ready'
-                              : 'Starting timer…',
+                          ? 'Ready'
+                          : 'Starting timer…',
                       style: theme.textTheme.bodyMedium,
                     ),
                   ],
@@ -90,8 +92,9 @@ class _OpeningScreenState extends ConsumerState<OpeningScreen> {
                       'Offline: opened your local files. Newer versions will '
                       'download next time.',
                     ),
-                  for (final e in (result?.readOnly.entries ??
-                      const <MapEntry<String, String>>[]))
+                  for (final e
+                      in (result?.readOnly.entries ??
+                          const <MapEntry<String, String>>[]))
                     _Note(
                       Icons.lock_outline,
                       '${e.key}: in use by ${e.value}. Read-only for you.',
@@ -133,14 +136,14 @@ class _Note extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 20, color: AppColors.warning),
-            const SizedBox(width: 8),
-            Expanded(child: Text(text)),
-          ],
-        ),
-      );
+    padding: const EdgeInsets.only(top: 10),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: AppColors.warning),
+        const SizedBox(width: 8),
+        Expanded(child: Text(text)),
+      ],
+    ),
+  );
 }

@@ -67,8 +67,10 @@ class TimerBarScreen extends ConsumerWidget {
                       child: Container(
                         width: 12,
                         height: 12,
-                        decoration:
-                            BoxDecoration(color: dot, shape: BoxShape.circle),
+                        decoration: BoxDecoration(
+                          color: dot,
+                          shape: BoxShape.circle,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -87,19 +89,21 @@ class TimerBarScreen extends ConsumerWidget {
                             ),
                           ),
                           Text.rich(
-                            TextSpan(children: [
-                              TextSpan(
-                                text: 'Today ${formatHm(s.todayActiveSecs)}',
-                              ),
-                              const TextSpan(text: '  ·  '),
-                              TextSpan(
-                                text: hoursText,
-                                style: TextStyle(
-                                  color: hoursColor,
-                                  fontWeight: FontWeight.w700,
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Today ${formatHm(s.todayActiveSecs)}',
                                 ),
-                              ),
-                            ]),
+                                const TextSpan(text: '  ·  '),
+                                TextSpan(
+                                  text: hoursText,
+                                  style: TextStyle(
+                                    color: hoursColor,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(fontSize: 12),
@@ -159,10 +163,10 @@ class _BarButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IconButton(
-        icon: Icon(icon, color: color ?? AppColors.primary),
-        tooltip: tooltip,
-        iconSize: 24,
-        visualDensity: VisualDensity.compact,
-        onPressed: onPressed,
-      );
+    icon: Icon(icon, color: color ?? AppColors.primary),
+    tooltip: tooltip,
+    iconSize: 24,
+    visualDensity: VisualDensity.compact,
+    onPressed: onPressed,
+  );
 }

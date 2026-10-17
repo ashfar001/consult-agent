@@ -52,7 +52,9 @@ class _UploadDialogState extends ConsumerState<UploadDialog> {
             Text(
               '${session.project?.code ?? ''} · files you changed in this '
               'project. Each upload becomes a new version.',
-              style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.muted,
+              ),
             ),
             const SizedBox(height: 12),
             Expanded(
@@ -80,13 +82,13 @@ class _UploadDialogState extends ConsumerState<UploadDialog> {
                                   : Text(_size(i.size)),
                               trailing: switch (i.state) {
                                 'confirmed' => const Icon(
-                                    Icons.check_circle,
-                                    color: AppColors.ok,
-                                  ),
+                                  Icons.check_circle,
+                                  color: AppColors.ok,
+                                ),
                                 'failed' => const Icon(
-                                    Icons.error,
-                                    color: AppColors.danger,
-                                  ),
+                                  Icons.error,
+                                  color: AppColors.danger,
+                                ),
                                 'queued' => const Text('Queued'),
                                 _ => null,
                               },

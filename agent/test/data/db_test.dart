@@ -5,25 +5,25 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Project _p(String id, int used) => Project(
-      id: id,
-      code: id.toUpperCase(),
-      name: 'Project $id',
-      client: 'Client',
-      overrunMode: OverrunMode.block,
-      folderTemplate: const ['01_Survey'],
-      myAllocatedHours: 10,
-      myUsedSeconds: used,
-      projectTotalHours: 20,
-      projectUsedSeconds: 100,
-      tasks: const [
-        ProjectTask(
-          id: 't1',
-          title: 'Task',
-          status: TaskStatus.inProgress,
-          allocatedHours: 2,
-        ),
-      ],
-    );
+  id: id,
+  code: id.toUpperCase(),
+  name: 'Project $id',
+  client: 'Client',
+  overrunMode: OverrunMode.block,
+  folderTemplate: const ['01_Survey'],
+  myAllocatedHours: 10,
+  myUsedSeconds: used,
+  projectTotalHours: 20,
+  projectUsedSeconds: 100,
+  tasks: const [
+    ProjectTask(
+      id: 't1',
+      title: 'Task',
+      status: TaskStatus.inProgress,
+      allocatedHours: 2,
+    ),
+  ],
+);
 
 void main() {
   late AgentDatabase db;

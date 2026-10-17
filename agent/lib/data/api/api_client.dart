@@ -9,7 +9,7 @@ class ApiException implements Exception {
   const ApiException(this.message, {this.statusCode, this.isNetwork = false});
 
   const ApiException.network([String message = 'Network unavailable'])
-      : this(message, isNetwork: true);
+    : this(message, isNetwork: true);
 
   final String message;
   final int? statusCode;
@@ -19,7 +19,9 @@ class ApiException implements Exception {
 
   /// Should a queued write be retried later?
   bool get isRetryable =>
-      isNetwork || statusCode == 408 || statusCode == 429 ||
+      isNetwork ||
+      statusCode == 408 ||
+      statusCode == 429 ||
       (statusCode != null && statusCode! >= 500);
 
   @override

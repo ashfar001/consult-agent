@@ -51,7 +51,9 @@ class OpeningController extends Notifier<OpeningState> {
       return;
     }
     try {
-      await ref.read(sessionManagerProvider.notifier).start(
+      await ref
+          .read(sessionManagerProvider.notifier)
+          .start(
             workerId: worker.id,
             project: selection.project,
             task: selection.task,

@@ -29,16 +29,20 @@ Future<void> bootstrap() async {
   for (final w in loader.warnings) {
     log.w(w);
   }
-  log.i('ConsultAgent starting (mock=${config.mockApi}, '
-      'data=${config.dataDir})');
+  log.i(
+    'ConsultAgent starting (mock=${config.mockApi}, '
+    'data=${config.dataDir})',
+  );
 
   FlutterError.onError = (details) {
     log.e('Flutter error', error: details.exception, stackTrace: details.stack);
   };
 
   final db = AgentDatabase.open(config.dataDir);
-  final deviceId = await db.kvDao
-      .getOrCreate(KvDao.deviceIdKey, () => const Uuid().v4());
+  final deviceId = await db.kvDao.getOrCreate(
+    KvDao.deviceIdKey,
+    () => const Uuid().v4(),
+  );
   final device = DeviceInfo(
     deviceId: deviceId,
     pcName: DeviceInfo.currentPcName(),
@@ -65,10 +69,12 @@ Future<void> bootstrap() async {
   // Created now so a running session is picked up straight away.
   container.read(sessionManagerProvider);
 
-  runApp(UncontrolledProviderScope(
-    container: container,
-    child: const ConsultAgentApp(),
-  ));
+  runApp(
+    UncontrolledProviderScope(
+      container: container,
+      child: const ConsultAgentApp(),
+    ),
+  );
 }
 
 /// Standard users may lack write access to ProgramData; fall back to a

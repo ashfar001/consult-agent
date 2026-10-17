@@ -53,7 +53,9 @@ class _BreakScreenState extends ConsumerState<BreakScreen> {
             Text('On lunch break', style: theme.textTheme.titleLarge),
             Text(
               'Break ${s.breakPieces} · timer paused',
-              style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.muted,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -66,7 +68,9 @@ class _BreakScreenState extends ConsumerState<BreakScreen> {
               usedUp
                   ? 'Time from now is not counted as work'
                   : '${formatHm(s.breakRemainingSecs)} of break left today',
-              style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.muted,
+              ),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(

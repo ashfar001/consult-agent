@@ -25,13 +25,11 @@ void main() {
   });
 
   FolderManager folders() => FolderManager(
-        config: h.config.mergeJson({
-          'projects_root': p.join(tmp.path, 'Projects'),
-        }),
-        db: h.db,
-        api: h.api,
-        currentWorkerName: 'Arun Kumar',
-      );
+    config: h.config.mergeJson({'projects_root': p.join(tmp.path, 'Projects')}),
+    db: h.db,
+    api: h.api,
+    currentWorkerName: 'Arun Kumar',
+  );
 
   test('sanitizeName strips characters Windows rejects', () {
     expect(sanitizeName('Villa: "North" / Block?'), 'Villa North Block');
@@ -43,16 +41,24 @@ void main() {
     final result = await folders().sync(project);
 
     expect(p.basename(result.folder), startsWith('KP-101_'));
-    for (final d in defaultTemplate.isEmpty ? <String>[] : project.folderTemplate) {
-      expect(Directory(p.join(result.folder, d)).existsSync(), isTrue, reason: d);
+    for (final d
+        in defaultTemplate.isEmpty ? <String>[] : project.folderTemplate) {
+      expect(
+        Directory(p.join(result.folder, d)).existsSync(),
+        isTrue,
+        reason: d,
+      );
     }
-    expect(File(p.join(result.folder, '02_Drawings/GF_Plan.dwg')).existsSync(), isTrue);
+    expect(
+      File(p.join(result.folder, '02_Drawings/GF_Plan.dwg')).existsSync(),
+      isTrue,
+    );
     expect(result.downloaded, 3);
     expect(result.failed, isEmpty);
     // No half-written temp files left behind.
-    final leftovers = Directory(result.folder)
-        .listSync(recursive: true)
-        .where((e) => e.path.endsWith('.part'));
+    final leftovers = Directory(
+      result.folder,
+    ).listSync(recursive: true).where((e) => e.path.endsWith('.part'));
     expect(leftovers, isEmpty);
     expect((await h.db.fileDao.forProject(project.id)), hasLength(3));
   });
@@ -120,12 +126,8 @@ void main() {
   });
 
   group('Uploader', () {
-    Uploader make({int max = 1024 * 1024}) => Uploader(
-          db: h.db,
-          api: h.api,
-          clock: () => h.now,
-          maxFileBytes: max,
-        );
+    Uploader make({int max = 1024 * 1024}) =>
+        Uploader(db: h.db, api: h.api, clock: () => h.now, maxFileBytes: max);
 
     test('uploads a file and records the new version', () async {
       final f = File(p.join(tmp.path, 'a.dwg'))..writeAsStringSync('data');
@@ -133,7 +135,9 @@ void main() {
       addTearDown(up.dispose);
       final q = await up.enqueue(
         projectId: 'p-101',
-        files: [UploadRequest(localPath: f.path, remotePath: '02_Drawings/a.dwg')],
+        files: [
+          UploadRequest(localPath: f.path, remotePath: '02_Drawings/a.dwg'),
+        ],
         note: 'n',
       );
       expect(q.queued, ['02_Drawings/a.dwg']);
@@ -142,8 +146,10 @@ void main() {
       final row = await h.db.uploadDao.byClientId(q.clientIds.single);
       expect(row!.state, 'confirmed');
       expect(row.resultFileId, isNotNull);
-      expect((await h.api.projectFiles('p-101')).map((f) => f.path),
-          contains('02_Drawings/a.dwg'));
+      expect(
+        (await h.api.projectFiles('p-101')).map((f) => f.path),
+        contains('02_Drawings/a.dwg'),
+      );
     });
 
     test('files over the size cap are skipped, not queued', () async {

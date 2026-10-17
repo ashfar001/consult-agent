@@ -1,8 +1,6 @@
 /// The end of normal working hours, from config ("HH:mm", local time).
 class WorkdayClock {
-  WorkdayClock(String hhmm)
-      : hour = _parse(hhmm).$1,
-        minute = _parse(hhmm).$2;
+  WorkdayClock(String hhmm) : hour = _parse(hhmm).$1, minute = _parse(hhmm).$2;
 
   final int hour;
   final int minute;

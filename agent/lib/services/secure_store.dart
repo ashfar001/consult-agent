@@ -60,9 +60,21 @@ class DpapiSecureStore implements SecureStore {
 
         final result = encrypt
             ? CryptProtectData(
-                inBlob, null, null, null, _cryptProtectUiForbidden, outBlob)
+                inBlob,
+                null,
+                null,
+                null,
+                _cryptProtectUiForbidden,
+                outBlob,
+              )
             : CryptUnprotectData(
-                inBlob, null, null, null, _cryptProtectUiForbidden, outBlob);
+                inBlob,
+                null,
+                null,
+                null,
+                _cryptProtectUiForbidden,
+                outBlob,
+              );
         if (!result.value) {
           throw OSError('DPAPI failed', result.error);
         }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../config/app_config.dart';
+import '../domain/admin_gate.dart';
 import '../data/api/api_client.dart';
 import '../data/api/http_api_client.dart';
 import '../data/api/mock_api_client.dart';
@@ -143,4 +144,16 @@ final recoveryServiceProvider = Provider<RecoveryService>(
 /// True while the sync worker can reach the server.
 final syncOnlineProvider = StreamProvider<bool>((ref) {
   return ref.watch(syncWorkerProvider).onlineChanges;
+});
+
+/// Guards the super-admin exit. Demo (mock) builds with no password set
+/// accept `admin1234` so the flow can be tried; real builds never do.
+final adminGateProvider = Provider<AdminGate>((ref) {
+  final cfg = ref.watch(configProvider);
+  return AdminGate(
+    hash: cfg.adminExitHash,
+    salt: cfg.adminExitSalt,
+    clock: ref.watch(clockProvider),
+    demoPassword: cfg.mockApi && cfg.adminExitHash.isEmpty ? 'admin1234' : null,
+  );
 });

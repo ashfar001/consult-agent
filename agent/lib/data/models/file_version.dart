@@ -12,13 +12,13 @@ class RemoteFile {
   });
 
   factory RemoteFile.fromJson(Json json) => RemoteFile(
-        fileId: asString(json['file_id']),
-        path: asString(json['path']),
-        version: asInt(json['version']),
-        size: asInt(json['size']),
-        checkedOutBy: asStringOrNull(json['checked_out_by']),
-        downloadUrl: asString(json['download_url']),
-      );
+    fileId: asString(json['file_id']),
+    path: asString(json['path']),
+    version: asInt(json['version']),
+    size: asInt(json['size']),
+    checkedOutBy: asStringOrNull(json['checked_out_by']),
+    downloadUrl: asString(json['download_url']),
+  );
 
   final String fileId;
 
@@ -30,13 +30,13 @@ class RemoteFile {
   final String downloadUrl;
 
   Json toJson() => {
-        'file_id': fileId,
-        'path': path,
-        'version': version,
-        'size': size,
-        'checked_out_by': checkedOutBy,
-        'download_url': downloadUrl,
-      };
+    'file_id': fileId,
+    'path': path,
+    'version': version,
+    'size': size,
+    'checked_out_by': checkedOutBy,
+    'download_url': downloadUrl,
+  };
 }
 
 /// Response of `POST /agent/files/upload-url`. Either [url] (single PUT) or
@@ -45,12 +45,12 @@ class UploadTarget {
   const UploadTarget({required this.uploadId, this.url, this.parts = const []});
 
   factory UploadTarget.fromJson(Json json) => UploadTarget(
-        uploadId: asString(json['upload_id']),
-        url: asStringOrNull(json['url']),
-        parts: json['parts'] is List
-            ? (json['parts'] as List).map((e) => '$e').toList()
-            : const [],
-      );
+    uploadId: asString(json['upload_id']),
+    url: asStringOrNull(json['url']),
+    parts: json['parts'] is List
+        ? (json['parts'] as List).map((e) => '$e').toList()
+        : const [],
+  );
 
   final String uploadId;
   final String? url;
@@ -64,9 +64,9 @@ class FileVersionRef {
   const FileVersionRef({required this.fileId, required this.version});
 
   factory FileVersionRef.fromJson(Json json) => FileVersionRef(
-        fileId: asString(json['file_id']),
-        version: asInt(json['version']),
-      );
+    fileId: asString(json['file_id']),
+    version: asInt(json['version']),
+  );
 
   final String fileId;
   final int version;

@@ -59,14 +59,13 @@ class UploadState {
     bool? completeTask,
     bool? busy,
     String? Function()? message,
-  }) =>
-      UploadState(
-        items: items ?? this.items,
-        note: note ?? this.note,
-        completeTask: completeTask ?? this.completeTask,
-        busy: busy ?? this.busy,
-        message: message != null ? message() : this.message,
-      );
+  }) => UploadState(
+    items: items ?? this.items,
+    note: note ?? this.note,
+    completeTask: completeTask ?? this.completeTask,
+    busy: busy ?? this.busy,
+    message: message != null ? message() : this.message,
+  );
 }
 
 /// Logic for the Upload dialog: pick files, queue, show progress.
@@ -90,11 +89,11 @@ class UploadController extends Notifier<UploadState> {
   }
 
   void toggle(String path, bool value) => state = state.copyWith(
-        items: [
-          for (final i in state.items)
-            i.path == path ? i.copyWith(selected: value) : i,
-        ],
-      );
+    items: [
+      for (final i in state.items)
+        i.path == path ? i.copyWith(selected: value) : i,
+    ],
+  );
 
   void setNote(String v) => state = state.copyWith(note: v);
 
@@ -111,7 +110,13 @@ class UploadController extends Notifier<UploadState> {
       if (path == null || items.any((i) => i.path == path)) continue;
       var remote = watcher.relative(path);
       if (remote.startsWith('..')) remote = '05_Exports/${p.basename(path)}';
-      items.add(UploadItem(path: path, remotePath: remote, size: File(path).lengthSync()));
+      items.add(
+        UploadItem(
+          path: path,
+          remotePath: remote,
+          size: File(path).lengthSync(),
+        ),
+      );
     }
     state = state.copyWith(items: items);
   }

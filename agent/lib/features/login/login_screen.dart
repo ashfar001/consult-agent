@@ -73,8 +73,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Text(
                       'This PC is locked until you sign in and choose a project.',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(color: AppColors.muted),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.muted,
+                      ),
                     ),
                     const SizedBox(height: 28),
                     TextField(
@@ -113,8 +114,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           : Text(
                               auth.error!,
                               key: const Key('loginError'),
-                              style: theme.textTheme.bodyMedium
-                                  ?.copyWith(color: AppColors.danger),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: AppColors.danger,
+                              ),
                             ),
                     ),
                     const SizedBox(height: 8),
@@ -124,9 +126,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ? const SizedBox(
                               width: 24,
                               height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 3),
                             )
                           : const Text('Sign in'),
                     ),
@@ -142,12 +142,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(
                         'Demo mode: EMP001 / 1234',
                         textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(color: AppColors.muted),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.muted,
+                        ),
                       ),
-                      TextButton(
-                        onPressed: ref.read(flowCoordinatorProvider).exitApp,
-                        child: const Text('Exit demo (Ctrl+Shift+F12)'),
+                      Text(
+                        'Demo admin exit: Ctrl+Shift+F12, password admin1234',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.muted,
+                        ),
                       ),
                     ],
                   ],

@@ -12,10 +12,10 @@ abstract final class AppColors {
   static const muted = Color(0xFF6B7280);
 
   static Color forUsage(UsageLevel level) => switch (level) {
-        UsageLevel.normal => primary,
-        UsageLevel.warning => warning,
-        UsageLevel.over => danger,
-      };
+    UsageLevel.normal => primary,
+    UsageLevel.warning => warning,
+    UsageLevel.over => danger,
+  };
 }
 
 ThemeData buildTheme() {

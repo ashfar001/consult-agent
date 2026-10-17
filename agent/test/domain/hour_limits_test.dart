@@ -6,20 +6,19 @@ Project _project({
   double allocatedHours = 10,
   int usedSecs = 0,
   OverrunMode mode = OverrunMode.allow,
-}) =>
-    Project(
-      id: 'p',
-      code: 'P',
-      name: 'P',
-      client: 'C',
-      overrunMode: mode,
-      folderTemplate: const [],
-      myAllocatedHours: allocatedHours,
-      myUsedSeconds: usedSecs,
-      projectTotalHours: 0,
-      projectUsedSeconds: 0,
-      tasks: const [],
-    );
+}) => Project(
+  id: 'p',
+  code: 'P',
+  name: 'P',
+  client: 'C',
+  overrunMode: mode,
+  folderTemplate: const [],
+  myAllocatedHours: allocatedHours,
+  myUsedSeconds: usedSecs,
+  projectTotalHours: 0,
+  projectUsedSeconds: 0,
+  tasks: const [],
+);
 
 void main() {
   group('HourUsage', () {
@@ -65,7 +64,9 @@ void main() {
         HourUsage.ofProject(_project(allocatedHours: 0)).level,
         UsageLevel.normal,
       );
-      final used = HourUsage.ofProject(_project(allocatedHours: 0, usedSecs: 1));
+      final used = HourUsage.ofProject(
+        _project(allocatedHours: 0, usedSecs: 1),
+      );
       expect(used.level, UsageLevel.over);
       expect(used.progress, 1);
     });

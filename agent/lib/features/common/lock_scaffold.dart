@@ -43,8 +43,9 @@ class LockScaffold extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Text(
                   config.companyName,
-                  style: theme.textTheme.titleLarge
-                      ?.copyWith(color: Colors.white),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                  ),
                 ),
                 const Spacer(),
                 if (trailing != null) ...[trailing!, const SizedBox(width: 24)],
@@ -53,8 +54,9 @@ class LockScaffold extends ConsumerWidget {
                   const SizedBox(width: 6),
                   Text(
                     device.pcName,
-                    style: theme.textTheme.bodyLarge
-                        ?.copyWith(color: Colors.white70),
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: Colors.white70,
+                    ),
                   ),
                   const SizedBox(width: 24),
                 ],
@@ -97,10 +99,10 @@ class _ClockState extends State<_Clock> {
 
   @override
   Widget build(BuildContext context) => Text(
-        _fmt.format(_now),
-        style: Theme.of(context)
-            .textTheme
-            .titleMedium
-            ?.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
-      );
+    _fmt.format(_now),
+    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w600,
+    ),
+  );
 }

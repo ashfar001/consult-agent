@@ -16,8 +16,9 @@ class SummaryDateNotifier extends Notifier<String?> {
   void set(String? date) => state = date;
 }
 
-final summaryDateProvider =
-    NotifierProvider<SummaryDateNotifier, String?>(SummaryDateNotifier.new);
+final summaryDateProvider = NotifierProvider<SummaryDateNotifier, String?>(
+  SummaryDateNotifier.new,
+);
 
 class ProjectSummary {
   const ProjectSummary({
@@ -72,7 +73,8 @@ class SummaryController extends Notifier<SummaryState> {
   Future<void> load() async {
     final db = ref.read(dbProvider);
     final date =
-        ref.read(summaryDateProvider) ?? _dayFmt.format(ref.read(clockProvider)());
+        ref.read(summaryDateProvider) ??
+        _dayFmt.format(ref.read(clockProvider)());
     state = SummaryState(date: date);
     final day = _dayFmt.parse(date);
 
@@ -87,8 +89,10 @@ class SummaryController extends Notifier<SummaryState> {
       reachable = false;
     }
 
-    final rows = await db.sessionDao
-        .heartbeatsBetween(day, day.add(const Duration(days: 1)));
+    final rows = await db.sessionDao.heartbeatsBetween(
+      day,
+      day.add(const Duration(days: 1)),
+    );
     var active = 0, idle = 0, overtime = 0;
     final apps = <String, int>{};
     final perProject = <String, int>{};
@@ -112,13 +116,16 @@ class SummaryController extends Notifier<SummaryState> {
         ifAbsent: () => r.hb.activeSecs,
       );
       final m = jsonDecode(r.hb.appsJson) as Map<String, dynamic>;
-      m.forEach((k, v) => apps.update(k, (x) => x + asInt(v), ifAbsent: () => asInt(v)));
+      m.forEach(
+        (k, v) => apps.update(k, (x) => x + asInt(v), ifAbsent: () => asInt(v)),
+      );
     }
 
     final breaks = await db.breakDao.forDay(date);
     final breakSecs = breaks.fold<int>(
       0,
-      (a, b) => a + ((b.endedAt ?? b.startedAt).difference(b.startedAt).inSeconds),
+      (a, b) =>
+          a + ((b.endedAt ?? b.startedAt).difference(b.startedAt).inSeconds),
     );
 
     // Hours left: fresh from the server if possible, else the saved list.
@@ -138,17 +145,19 @@ class SummaryController extends Notifier<SummaryState> {
     final summaries = <ProjectSummary>[];
     for (final p in projects.where((p) => perProject.containsKey(p.id))) {
       final unsynced = await db.sessionDao.unsyncedActiveSecs(p.id);
-      summaries.add(ProjectSummary(
-        code: p.code,
-        name: p.name,
-        todayActiveSecs: perProject[p.id] ?? 0,
-        // Saved list predates today's work; add it back in.
-        usage: HourUsage.ofProject(
-          p,
-          unsyncedSecs: estimate ? perProjectNormal[p.id] ?? 0 : unsynced,
+      summaries.add(
+        ProjectSummary(
+          code: p.code,
+          name: p.name,
+          todayActiveSecs: perProject[p.id] ?? 0,
+          // Saved list predates today's work; add it back in.
+          usage: HourUsage.ofProject(
+            p,
+            unsyncedSecs: estimate ? perProjectNormal[p.id] ?? 0 : unsynced,
+          ),
+          estimate: estimate,
         ),
-        estimate: estimate,
-      ));
+      );
     }
 
     state = SummaryState(

@@ -33,9 +33,21 @@ The PC is never locked. The agent runs hidden and shows a window only when neede
 
 All time is written to SQLite first and synced when the network allows.
 
+## Administrator exit
+
+For urgent situations a super-admin can close the agent: press **Ctrl+Shift+F12** anywhere in Windows (the agent can be hidden), enter the admin password, and the agent saves any running session, tells the server (`admin_exit` event; wrong tries send `admin_exit_failed`) and quits. After 3 wrong tries it locks for 30 seconds. Closing the window or Alt+F4 does nothing.
+
+The password is never stored. Generate the two config values on any machine with Dart:
+
+```bash
+cd agent && dart run tool/hash_admin_password.dart
+```
+
+Paste the printed `admin_exit_salt` and `admin_exit_hash` lines into `%ProgramData%\ConsultAgent\config.json`. With no hash set, real builds cannot be exited from the UI.
+
 ## Demo build
 
-The build from CI runs in mock mode (`MOCK_API=true`): sign in with **EMP001 / 1234**. In demo builds the prompt also appears when **Notepad** or **Paint** starts, and once at launch, so it can be tried on a PC without CAD. Exit with **Ctrl+Shift+F12** or the *Exit demo* button on the prompt.
+The build from CI runs in mock mode (`MOCK_API=true`): sign in with **EMP001 / 1234**. In demo builds the prompt also appears when **Notepad** or **Paint** starts, and once at launch, so it can be tried on a PC without CAD. Exit with **Ctrl+Shift+F12** and the demo admin password **admin1234** (accepted only in mock builds with no hash configured).
 
 ## Contract note
 

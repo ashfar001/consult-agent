@@ -26,14 +26,8 @@ void main() {
       employeeId: 'EMP001',
       pin: '1234',
       deviceId: 'd',
-    ))
-        .token;
-    worker = SyncWorker(
-      db: db,
-      api: api,
-      clock: () => now,
-      random: Random(1),
-    );
+    )).token;
+    worker = SyncWorker(db: db, api: api, clock: () => now, random: Random(1));
   });
 
   tearDown(() async {
@@ -100,41 +94,43 @@ void main() {
     expect(acks.single.projectId, 'p-101');
   });
 
-  test('offline: nothing is lost, and sync resumes without double counting',
-      () async {
-    await localSession('s1');
-    api.offline = true;
-    expect(await worker.syncOnce(), isFalse);
-    expect(worker.isOnline, isFalse);
-    expect(await db.sessionDao.unsyncedHeartbeats(), hasLength(2));
-    expect(await db.outboxDao.pendingCount(), 1);
+  test(
+    'offline: nothing is lost, and sync resumes without double counting',
+    () async {
+      await localSession('s1');
+      api.offline = true;
+      expect(await worker.syncOnce(), isFalse);
+      expect(worker.isOnline, isFalse);
+      expect(await db.sessionDao.unsyncedHeartbeats(), hasLength(2));
+      expect(await db.outboxDao.pendingCount(), 1);
 
-    // Still inside the backoff window.
-    api.offline = false;
-    expect(await worker.syncOnce(), isFalse);
+      // Still inside the backoff window.
+      api.offline = false;
+      expect(await worker.syncOnce(), isFalse);
 
-    now = now.add(const Duration(minutes: 10));
-    expect(await worker.syncOnce(), isTrue);
-    expect(worker.isOnline, isTrue);
-    expect(api.acceptedHeartbeats, 2);
+      now = now.add(const Duration(minutes: 10));
+      expect(await worker.syncOnce(), isTrue);
+      expect(worker.isOnline, isTrue);
+      expect(api.acceptedHeartbeats, 2);
 
-    // A second pass sends nothing new.
-    await db.sessionDao.insertHeartbeat(
-      HeartbeatsCompanion.insert(
-        clientId: 's1-hb-late',
-        localSessionId: 's1',
-        fromTime: now,
-        toTime: now.add(const Duration(minutes: 1)),
-        activeSecs: 60,
-        idleSecs: 0,
-        appsJson: '{}',
-      ),
-    );
-    await worker.syncOnce(ignoreBackoff: true);
-    expect(api.acceptedHeartbeats, 3);
-    final today = await api.myHoursToday();
-    expect(today.activeSecs, 160);
-  });
+      // A second pass sends nothing new.
+      await db.sessionDao.insertHeartbeat(
+        HeartbeatsCompanion.insert(
+          clientId: 's1-hb-late',
+          localSessionId: 's1',
+          fromTime: now,
+          toTime: now.add(const Duration(minutes: 1)),
+          activeSecs: 60,
+          idleSecs: 0,
+          appsJson: '{}',
+        ),
+      );
+      await worker.syncOnce(ignoreBackoff: true);
+      expect(api.acceptedHeartbeats, 3);
+      final today = await api.myHoursToday();
+      expect(today.activeSecs, 160);
+    },
+  );
 
   test('a stop waits until its heartbeats are synced', () async {
     await localSession('s1');
@@ -147,7 +143,9 @@ void main() {
     );
     // Session has no server id yet, so the stop cannot go first.
     await db.outboxDao.markDone(
-      (await db.outboxDao.due(now)).firstWhere((r) => r.kind == 'session_start').id,
+      (await db.outboxDao.due(
+        now,
+      )).firstWhere((r) => r.kind == 'session_start').id,
     );
     await worker.syncOnce();
     final left = await db.outboxDao.due(now);
@@ -172,8 +170,10 @@ void main() {
       final last = now.add(const Duration(minutes: 7));
       await db.sessionDao.setLastHeartbeat('s1', last);
 
-      final closed = await RecoveryService(db: db, clock: () => now)
-          .recoverUncleanSessions();
+      final closed = await RecoveryService(
+        db: db,
+        clock: () => now,
+      ).recoverUncleanSessions();
       expect(closed, 1);
 
       final s = (await db.sessionDao.byId('s1'))!;
@@ -218,8 +218,10 @@ void main() {
 
     test('nothing to recover is a no-op', () async {
       expect(
-        await RecoveryService(db: db, clock: () => now)
-            .recoverUncleanSessions(),
+        await RecoveryService(
+          db: db,
+          clock: () => now,
+        ).recoverUncleanSessions(),
         0,
       );
     });

@@ -80,8 +80,9 @@ class _ProjectSelectScreenState extends ConsumerState<ProjectSelectScreen> {
                       ),
                       Text(
                         'Choose the project and task you are working on.',
-                        style: theme.textTheme.bodyLarge
-                            ?.copyWith(color: AppColors.muted),
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: AppColors.muted,
+                        ),
                       ),
                     ],
                   ),
@@ -128,7 +129,10 @@ class _ProjectSelectScreenState extends ConsumerState<ProjectSelectScreen> {
               style: theme.textTheme.bodyLarge,
             ),
             const SizedBox(height: 16),
-            FilledButton(onPressed: controller.load, child: const Text('Retry')),
+            FilledButton(
+              onPressed: controller.load,
+              child: const Text('Retry'),
+            ),
           ],
         ),
       );
@@ -157,8 +161,9 @@ class _ProjectSelectScreenState extends ConsumerState<ProjectSelectScreen> {
             return ProjectCard(
               project: p,
               selected: p.id == state.selectedProjectId,
-              selectedTaskId:
-                  p.id == state.selectedProjectId ? state.selectedTaskId : null,
+              selectedTaskId: p.id == state.selectedProjectId
+                  ? state.selectedTaskId
+                  : null,
               onSelect: () => controller.selectProject(p.id),
               onSelectTask: (taskId) {
                 if (p.id != state.selectedProjectId) {
@@ -234,8 +239,9 @@ class _StartBar extends StatelessWidget {
               child: project == null
                   ? Text(
                       'Select a project to begin',
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(color: AppColors.muted),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: AppColors.muted,
+                      ),
                     )
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,19 +249,22 @@ class _StartBar extends StatelessWidget {
                       children: [
                         Text(
                           '${project.code} · ${project.name}',
-                          style: theme.textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         Text(
                           task?.title ?? 'Select a task',
-                          style: theme.textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.muted),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.muted,
+                          ),
                         ),
                         if (block == StartBlock.hoursExhausted)
                           Text(
                             block!.message,
-                            style: theme.textTheme.bodyMedium
-                                ?.copyWith(color: AppColors.danger),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.danger,
+                            ),
                           ),
                       ],
                     ),
@@ -316,8 +325,10 @@ class ProjectCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(6),
@@ -353,8 +364,9 @@ class ProjectCard extends StatelessWidget {
                 project.client,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style:
-                    theme.textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.muted,
+                ),
               ),
               const SizedBox(height: 14),
               Row(
@@ -364,15 +376,16 @@ class ProjectCard extends StatelessWidget {
                   Text(
                     '${formatHm(usage.usedSecs)} / '
                     '${formatHm(usage.allocatedSecs)}',
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const Spacer(),
                   Text(
                     level == UsageLevel.over
                         ? (blocked
-                            ? 'No hours left'
-                            : 'Overrun ${formatHm(usage.overrunSecs)}')
+                              ? 'No hours left'
+                              : 'Overrun ${formatHm(usage.overrunSecs)}')
                         : '${formatHm(usage.remainingSecs)} left',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: level == UsageLevel.normal

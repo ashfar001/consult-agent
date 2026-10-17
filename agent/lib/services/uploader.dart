@@ -24,7 +24,12 @@ class UploadRequest {
 }
 
 class UploadProgress {
-  const UploadProgress(this.clientId, this.remotePath, this.fraction, this.state);
+  const UploadProgress(
+    this.clientId,
+    this.remotePath,
+    this.fraction,
+    this.state,
+  );
 
   final String clientId;
   final String remotePath;
@@ -158,8 +163,10 @@ class Uploader {
 
   Future<void> _fail(UploadRow row, String error) async {
     log.e('Upload of ${row.remotePath} failed: $error');
-    await db.uploadDao
-        .patch(row.clientId, const UploadsCompanion(state: Value('failed')));
+    await db.uploadDao.patch(
+      row.clientId,
+      const UploadsCompanion(state: Value('failed')),
+    );
     _progress.add(UploadProgress(row.clientId, row.remotePath, 0, 'failed'));
   }
 
@@ -168,8 +175,9 @@ class Uploader {
     if (!file.existsSync()) {
       throw FileSystemException('File missing', row.localPath);
     }
-    void emit(double f) =>
-        _progress.add(UploadProgress(row.clientId, row.remotePath, f, 'uploading'));
+    void emit(double f) => _progress.add(
+      UploadProgress(row.clientId, row.remotePath, f, 'uploading'),
+    );
     emit(0);
 
     var uploadId = row.uploadId;

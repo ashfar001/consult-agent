@@ -14,7 +14,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Sync worker whose automatic kicks do nothing, so tests control sync.
 class QuietSyncWorker extends SyncWorker {
-  QuietSyncWorker({required super.db, required super.api, required super.clock});
+  QuietSyncWorker({
+    required super.db,
+    required super.api,
+    required super.clock,
+  });
 
   @override
   void kick() {}
@@ -25,27 +29,26 @@ Project project({
   double allocatedHours = 10,
   int usedSecs = 0,
   OverrunMode mode = OverrunMode.allow,
-}) =>
-    Project(
-      id: id,
-      code: 'KP-1',
-      name: 'Test',
-      client: 'C',
-      overrunMode: mode,
-      folderTemplate: const [],
-      myAllocatedHours: allocatedHours,
-      myUsedSeconds: usedSecs,
-      projectTotalHours: 50,
-      projectUsedSeconds: 0,
-      tasks: const [
-        ProjectTask(
-          id: 't-1',
-          title: 'Task',
-          status: TaskStatus.inProgress,
-          allocatedHours: 5,
-        ),
-      ],
-    );
+}) => Project(
+  id: id,
+  code: 'KP-1',
+  name: 'Test',
+  client: 'C',
+  overrunMode: mode,
+  folderTemplate: const [],
+  myAllocatedHours: allocatedHours,
+  myUsedSeconds: usedSecs,
+  projectTotalHours: 50,
+  projectUsedSeconds: 0,
+  tasks: const [
+    ProjectTask(
+      id: 't-1',
+      title: 'Task',
+      status: TaskStatus.inProgress,
+      allocatedHours: 5,
+    ),
+  ],
+);
 
 const task = ProjectTask(
   id: 't-1',
@@ -87,8 +90,7 @@ class Harness {
     const ForegroundApp(exe: 'acad.exe', title: 'Drawing1.dwg'),
   );
 
-  SessionManager get manager =>
-      container.read(sessionManagerProvider.notifier);
+  SessionManager get manager => container.read(sessionManagerProvider.notifier);
   SessionState get state => container.read(sessionManagerProvider);
 
   /// Advances the clock and ticks every 5 s for [seconds].

@@ -92,8 +92,9 @@ class FolderManager {
     SyncProgress? onProgress,
   }) async {
     final folder = folderFor(project);
-    final template =
-        project.folderTemplate.isEmpty ? defaultTemplate : project.folderTemplate;
+    final template = project.folderTemplate.isEmpty
+        ? defaultTemplate
+        : project.folderTemplate;
     for (final sub in template) {
       Directory(p.join(folder, sub)).createSync(recursive: true);
     }
@@ -113,7 +114,8 @@ class FolderManager {
     }
 
     final local = {
-      for (final v in await db.fileDao.forProject(project.id)) v.path: v.version,
+      for (final v in await db.fileDao.forProject(project.id))
+        v.path: v.version,
     };
     final todo = remote.where((f) {
       final target = File(p.join(folder, f.path));

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/admin/admin_exit_screen.dart';
 import '../features/break/break_screen.dart';
 import '../features/break/overtime_screen.dart';
 import '../features/break/notice_screen.dart';
@@ -27,6 +28,7 @@ abstract final class Routes {
   static const endDay = '/end-day';
   static const summary = '/summary';
   static const pendingReport = '/pending-report';
+  static const adminExit = '/admin-exit';
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -41,7 +43,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final auth = refresh.value;
       final at = state.matchedLocation;
-      const needSignIn = {Routes.projects, Routes.opening, Routes.pendingReport};
+      const needSignIn = {
+        Routes.projects,
+        Routes.opening,
+        Routes.pendingReport,
+      };
       if (!auth.isSignedIn) {
         return needSignIn.contains(at) ? Routes.prompt : null;
       }
@@ -63,16 +69,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.projects,
         builder: (_, _) => const ProjectSelectScreen(),
       ),
-      GoRoute(
-        path: Routes.opening,
-        builder: (_, _) => const OpeningScreen(),
-      ),
+      GoRoute(path: Routes.opening, builder: (_, _) => const OpeningScreen()),
       GoRoute(path: Routes.bar, builder: (_, _) => const TimerBarScreen()),
       GoRoute(path: Routes.breakRoute, builder: (_, _) => const BreakScreen()),
-      GoRoute(
-        path: Routes.overtime,
-        builder: (_, _) => const OvertimeScreen(),
-      ),
+      GoRoute(path: Routes.overtime, builder: (_, _) => const OvertimeScreen()),
       GoRoute(path: Routes.notice, builder: (_, _) => const NoticeScreen()),
       GoRoute(path: Routes.upload, builder: (_, _) => const UploadDialog()),
       GoRoute(
@@ -84,6 +84,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const EndDayScreen(pending: true),
       ),
       GoRoute(path: Routes.summary, builder: (_, _) => const SummaryScreen()),
+      GoRoute(
+        path: Routes.adminExit,
+        builder: (_, _) => const AdminExitScreen(),
+      ),
     ],
   );
   ref.onDispose(router.dispose);

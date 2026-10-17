@@ -19,10 +19,10 @@ class ConfigLoader {
     String? userProfileDir,
     Map<String, String>? environment,
     bool? mockDefine,
-  })  : _env = environment ?? Platform.environment,
-        _mockDefine = mockDefine ?? _mockApiDefine,
-        _programDataDir = programDataDir,
-        _userProfileDir = userProfileDir;
+  }) : _env = environment ?? Platform.environment,
+       _mockDefine = mockDefine ?? _mockApiDefine,
+       _programDataDir = programDataDir,
+       _userProfileDir = userProfileDir;
 
   final Map<String, String> _env;
   final bool _mockDefine;

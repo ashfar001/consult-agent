@@ -12,13 +12,13 @@ abstract interface class IdleMonitor {
 class Win32IdleMonitor implements IdleMonitor {
   @override
   int idleSecs() => using((arena) {
-        final info = arena<LASTINPUTINFO>();
-        info.ref.cbSize = sizeOf<LASTINPUTINFO>();
-        if (!GetLastInputInfo(info)) return 0;
-        // Both values are 32-bit tick counts that wrap together.
-        final diff = (GetTickCount() - info.ref.dwTime) & 0xFFFFFFFF;
-        return diff ~/ 1000;
-      });
+    final info = arena<LASTINPUTINFO>();
+    info.ref.cbSize = sizeOf<LASTINPUTINFO>();
+    if (!GetLastInputInfo(info)) return 0;
+    // Both values are 32-bit tick counts that wrap together.
+    final diff = (GetTickCount() - info.ref.dwTime) & 0xFFFFFFFF;
+    return diff ~/ 1000;
+  });
 }
 
 /// Scriptable monitor for tests and non-Windows hosts.

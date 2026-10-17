@@ -2,17 +2,17 @@
 typedef Json = Map<String, dynamic>;
 
 int asInt(Object? v, [int fallback = 0]) => switch (v) {
-      final int i => i,
-      final num n => n.round(),
-      final String s => int.tryParse(s) ?? fallback,
-      _ => fallback,
-    };
+  final int i => i,
+  final num n => n.round(),
+  final String s => int.tryParse(s) ?? fallback,
+  _ => fallback,
+};
 
 double asDouble(Object? v, [double fallback = 0]) => switch (v) {
-      final num n => n.toDouble(),
-      final String s => double.tryParse(s) ?? fallback,
-      _ => fallback,
-    };
+  final num n => n.toDouble(),
+  final String s => double.tryParse(s) ?? fallback,
+  _ => fallback,
+};
 
 String asString(Object? v, [String fallback = '']) =>
     v == null ? fallback : v.toString();

@@ -65,7 +65,9 @@ class _EndDayScreenState extends ConsumerState<EndDayScreen> {
               Text(
                 'The last working day ended without a report. File it to '
                 'continue.',
-                style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.muted,
+                ),
               ),
             const SizedBox(height: 12),
             Expanded(
@@ -84,8 +86,7 @@ class _EndDayScreenState extends ConsumerState<EndDayScreen> {
                   if (s.tasks.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Text('Your tasks', style: theme.textTheme.titleMedium),
-                    for (final t in s.tasks)
-                      _TaskTile(task: t, controller: c),
+                    for (final t in s.tasks) _TaskTile(task: t, controller: c),
                   ],
                   const SizedBox(height: 16),
                   TextField(
@@ -131,8 +132,9 @@ class _EndDayScreenState extends ConsumerState<EndDayScreen> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   s.error!,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(color: AppColors.danger),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.danger,
+                  ),
                 ),
               ),
             const SizedBox(height: 12),
@@ -147,7 +149,9 @@ class _EndDayScreenState extends ConsumerState<EndDayScreen> {
                   ),
                 const Spacer(),
                 FilledButton.icon(
-                  onPressed: s.busy ? null : () => c.submit(pending: widget.pending),
+                  onPressed: s.busy
+                      ? null
+                      : () => c.submit(pending: widget.pending),
                   icon: s.busy
                       ? const SizedBox(
                           width: 18,
@@ -178,10 +182,7 @@ class _TaskTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Expanded(
-            flex: 3,
-            child: Text('${task.projectCode} · ${task.title}'),
-          ),
+          Expanded(flex: 3, child: Text('${task.projectCode} · ${task.title}')),
           const SizedBox(width: 12),
           DropdownButton<TaskStatus>(
             value: task.status,

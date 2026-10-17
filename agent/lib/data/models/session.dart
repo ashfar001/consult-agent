@@ -39,14 +39,14 @@ class Heartbeat {
   });
 
   factory Heartbeat.fromJson(Json json) => Heartbeat(
-        clientId: asString(json['client_id']),
-        sessionId: asString(json['session_id']),
-        from: asDate(json['from']),
-        to: asDate(json['to']),
-        activeSecs: asInt(json['active_secs']),
-        idleSecs: asInt(json['idle_secs']),
-        apps: asIntMap(json['apps']),
-      );
+    clientId: asString(json['client_id']),
+    sessionId: asString(json['session_id']),
+    from: asDate(json['from']),
+    to: asDate(json['to']),
+    activeSecs: asInt(json['active_secs']),
+    idleSecs: asInt(json['idle_secs']),
+    apps: asIntMap(json['apps']),
+  );
 
   final String clientId;
 
@@ -61,14 +61,14 @@ class Heartbeat {
   final Map<String, int> apps;
 
   Json toJson() => {
-        'client_id': clientId,
-        'session_id': sessionId,
-        'from': isoUtc(from),
-        'to': isoUtc(to),
-        'active_secs': activeSecs,
-        'idle_secs': idleSecs,
-        'apps': apps,
-      };
+    'client_id': clientId,
+    'session_id': sessionId,
+    'from': isoUtc(from),
+    'to': isoUtc(to),
+    'active_secs': activeSecs,
+    'idle_secs': idleSecs,
+    'apps': apps,
+  };
 }
 
 /// Response of `POST /agent/sessions/heartbeats`.
@@ -80,10 +80,10 @@ class HeartbeatAck {
   });
 
   factory HeartbeatAck.fromJson(Json json) => HeartbeatAck(
-        myUsedSeconds: asInt(json['my_used_seconds']),
-        myAllocatedHours: asDouble(json['my_allocated_hours']),
-        overrun: json['overrun'] == true,
-      );
+    myUsedSeconds: asInt(json['my_used_seconds']),
+    myAllocatedHours: asDouble(json['my_allocated_hours']),
+    overrun: json['overrun'] == true,
+  );
 
   final int myUsedSeconds;
   final double myAllocatedHours;
@@ -98,6 +98,8 @@ abstract final class AgentEventType {
   static const breakEnd = 'break_end';
   static const overtimeStart = 'overtime_start';
   static const workdayEnd = 'workday_end';
+  static const adminExit = 'admin_exit';
+  static const adminExitFailed = 'admin_exit_failed';
 }
 
 class AgentEvent {
@@ -114,9 +116,9 @@ class AgentEvent {
   final Json data;
 
   Json toJson() => {
-        'client_id': clientId,
-        'type': type,
-        'at': isoUtc(at),
-        'data': data,
-      };
+    'client_id': clientId,
+    'type': type,
+    'at': isoUtc(at),
+    'data': data,
+  };
 }

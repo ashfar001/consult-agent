@@ -28,18 +28,20 @@ void main() {
     expect(await h.db.outboxDao.pendingCount(), 1);
   });
 
-  test('a minute of ticks writes one heartbeat with active time and app',
-      () async {
-    await begin(project());
-    await h.run(60);
-    final rows = await h.db.sessionDao.unsyncedHeartbeats();
-    expect(rows, hasLength(1));
-    expect(rows.single.activeSecs, 60);
-    expect(rows.single.idleSecs, 0);
-    expect(jsonDecode(rows.single.appsJson), {'AutoCAD': 60});
-    expect(h.state.todayActiveSecs, 60);
-    expect(h.state.unsyncedSecs, 60);
-  });
+  test(
+    'a minute of ticks writes one heartbeat with active time and app',
+    () async {
+      await begin(project());
+      await h.run(60);
+      final rows = await h.db.sessionDao.unsyncedHeartbeats();
+      expect(rows, hasLength(1));
+      expect(rows.single.activeSecs, 60);
+      expect(rows.single.idleSecs, 0);
+      expect(jsonDecode(rows.single.appsJson), {'AutoCAD': 60});
+      expect(h.state.todayActiveSecs, 60);
+      expect(h.state.unsyncedSecs, 60);
+    },
+  );
 
   test('idle time is counted separately and marks the status idle', () async {
     await begin(project());
@@ -68,10 +70,7 @@ void main() {
   });
 
   test('block mode ends the session at 100%', () async {
-    await begin(project(
-      usedSecs: 9 * 3600 + 55 * 60,
-      mode: OverrunMode.block,
-    ));
+    await begin(project(usedSecs: 9 * 3600 + 55 * 60, mode: OverrunMode.block));
     await h.run(300);
     expect(h.state.hasSession, isFalse);
     expect(h.state.blockMessage, contains('manager'));
@@ -172,10 +171,9 @@ void main() {
 
     test('overtime does not use up the allocation or block', () async {
       h.now = DateTime(2026, 10, 5, 17, 30);
-      await begin(project(
-        usedSecs: 9 * 3600 + 59 * 60,
-        mode: OverrunMode.block,
-      ));
+      await begin(
+        project(usedSecs: 9 * 3600 + 59 * 60, mode: OverrunMode.block),
+      );
       expect(h.state.overtime, isTrue);
       await h.run(600);
       expect(h.state.hasSession, isTrue);

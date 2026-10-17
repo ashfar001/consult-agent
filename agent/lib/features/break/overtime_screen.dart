@@ -30,7 +30,9 @@ class OvertimeScreen extends ConsumerWidget {
               'Continue as overtime? Overtime is recorded separately and does '
               'not use up your project hours.',
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.muted,
+              ),
             ),
             const SizedBox(height: 16),
             Row(

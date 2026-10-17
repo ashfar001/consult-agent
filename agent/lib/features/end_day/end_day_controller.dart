@@ -30,12 +30,12 @@ class TaskRow {
   final String note;
 
   TaskRow copyWith({TaskStatus? status, String? note}) => TaskRow(
-        taskId: taskId,
-        title: title,
-        projectCode: projectCode,
-        status: status ?? this.status,
-        note: note ?? this.note,
-      );
+    taskId: taskId,
+    title: title,
+    projectCode: projectCode,
+    status: status ?? this.status,
+    note: note ?? this.note,
+  );
 }
 
 class FileRow {
@@ -54,12 +54,12 @@ class FileRow {
   final bool tooLarge;
 
   FileRow withSelected(bool v) => FileRow(
-        path: path,
-        remotePath: remotePath,
-        size: size,
-        selected: v,
-        tooLarge: tooLarge,
-      );
+    path: path,
+    remotePath: remotePath,
+    size: size,
+    selected: v,
+    tooLarge: tooLarge,
+  );
 }
 
 class EndDayState {
@@ -89,16 +89,15 @@ class EndDayState {
     String? notes,
     bool? busy,
     String? Function()? error,
-  }) =>
-      EndDayState(
-        date: date ?? this.date,
-        tasks: tasks ?? this.tasks,
-        files: files ?? this.files,
-        summary: summary ?? this.summary,
-        notes: notes ?? this.notes,
-        busy: busy ?? this.busy,
-        error: error != null ? error() : this.error,
-      );
+  }) => EndDayState(
+    date: date ?? this.date,
+    tasks: tasks ?? this.tasks,
+    files: files ?? this.files,
+    summary: summary ?? this.summary,
+    notes: notes ?? this.notes,
+    busy: busy ?? this.busy,
+    error: error != null ? error() : this.error,
+  );
 }
 
 /// End Work / Pending Report: collects the day's report, queues the backup
@@ -116,8 +115,10 @@ class EndDayController extends Notifier<EndDayState> {
         ? (await db.reportDao.pendingDate(today) ?? today)
         : today;
     final day = _dayFmt.parse(date);
-    final sessions = await db.sessionDao
-        .sessionsBetween(day, day.add(const Duration(days: 1)));
+    final sessions = await db.sessionDao.sessionsBetween(
+      day,
+      day.add(const Duration(days: 1)),
+    );
     final current = ref.read(sessionManagerProvider).project;
     final worked = {
       ...sessions.map((s) => s.projectId),
@@ -252,7 +253,9 @@ class EndDayController extends Notifier<EndDayState> {
         payload: report.toJson(),
         now: now,
       );
-      for (final t in state.tasks.where((t) => t.status == TaskStatus.completed)) {
+      for (final t in state.tasks.where(
+        (t) => t.status == TaskStatus.completed,
+      )) {
         await db.outboxDao.enqueue(
           clientId: 'done-${t.taskId}-${state.date}',
           kind: OutboxKind.taskComplete,

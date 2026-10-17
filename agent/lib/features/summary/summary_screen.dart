@@ -32,7 +32,10 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Day summary · ${s.date}', style: theme.textTheme.headlineMedium),
+            Text(
+              'Day summary · ${s.date}',
+              style: theme.textTheme.headlineMedium,
+            ),
             if (s.loading) const LinearProgressIndicator(),
             const SizedBox(height: 12),
             Row(
@@ -49,25 +52,21 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: _Section(
-                      'Hours per app',
-                      [
-                        for (final a in s.apps)
-                          _Line(a.key.replaceFirst('Other:', ''), formatHm(a.value)),
-                        if (s.apps.isEmpty && !s.loading)
-                          const _Line('No activity recorded', ''),
-                      ],
-                    ),
+                    child: _Section('Hours per app', [
+                      for (final a in s.apps)
+                        _Line(
+                          a.key.replaceFirst('Other:', ''),
+                          formatHm(a.value),
+                        ),
+                      if (s.apps.isEmpty && !s.loading)
+                        const _Line('No activity recorded', ''),
+                    ]),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _Section(
-                      'Projects',
-                      [
-                        for (final p in s.projects)
-                          _ProjectLine(p),
-                      ],
-                    ),
+                    child: _Section('Projects', [
+                      for (final p in s.projects) _ProjectLine(p),
+                    ]),
                   ),
                 ],
               ),
@@ -130,18 +129,18 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Expanded(child: ListView(children: children)),
-            ],
-          ),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Expanded(child: ListView(children: children)),
+        ],
+      ),
+    ),
+  );
 }
 
 class _Line extends StatelessWidget {
@@ -152,14 +151,14 @@ class _Line extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            Expanded(child: Text(left)),
-            Text(right, style: const TextStyle(fontWeight: FontWeight.w600)),
-          ],
-        ),
-      );
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      children: [
+        Expanded(child: Text(left)),
+        Text(right, style: const TextStyle(fontWeight: FontWeight.w600)),
+      ],
+    ),
+  );
 }
 
 class _ProjectLine extends StatelessWidget {
@@ -199,8 +198,8 @@ class _ProjectLine extends StatelessWidget {
             level == UsageLevel.over
                 ? 'Overrun ${formatHm(p.usage.overrunSecs)}'
                 : '${formatHm(p.usage.remainingSecs)} left of '
-                    '${formatHm(p.usage.allocatedSecs)}'
-                    '${p.estimate ? ' (estimate, offline)' : ''}',
+                      '${formatHm(p.usage.allocatedSecs)}'
+                      '${p.estimate ? ' (estimate, offline)' : ''}',
             style: TextStyle(
               fontSize: 13,
               color: AppColors.forUsage(level) == AppColors.primary

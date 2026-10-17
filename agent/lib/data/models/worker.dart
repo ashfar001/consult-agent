@@ -9,11 +9,11 @@ class Worker {
   });
 
   factory Worker.fromJson(Json json) => Worker(
-        id: asString(json['id']),
-        employeeId: asString(json['employee_id']),
-        name: asString(json['name']),
-        role: asStringOrNull(json['role']),
-      );
+    id: asString(json['id']),
+    employeeId: asString(json['employee_id']),
+    name: asString(json['name']),
+    role: asStringOrNull(json['role']),
+  );
 
   final String id;
   final String employeeId;
@@ -21,11 +21,11 @@ class Worker {
   final String? role;
 
   Json toJson() => {
-        'id': id,
-        'employee_id': employeeId,
-        'name': name,
-        if (role != null) 'role': role,
-      };
+    'id': id,
+    'employee_id': employeeId,
+    'name': name,
+    if (role != null) 'role': role,
+  };
 }
 
 /// Result of `POST /agent/login`.
@@ -33,9 +33,9 @@ class LoginResult {
   const LoginResult({required this.token, required this.worker});
 
   factory LoginResult.fromJson(Json json) => LoginResult(
-        token: asString(json['token']),
-        worker: Worker.fromJson(json['worker'] as Json),
-      );
+    token: asString(json['token']),
+    worker: Worker.fromJson(json['worker'] as Json),
+  );
 
   final String token;
   final Worker worker;

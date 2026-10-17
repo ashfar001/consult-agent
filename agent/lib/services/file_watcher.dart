@@ -34,7 +34,8 @@ class FileWatcher {
     if (!dir.existsSync()) return;
 
     final baseline = {
-      for (final v in await db.fileDao.forProject(projectId)) v.path: v.syncedAt,
+      for (final v in await db.fileDao.forProject(projectId))
+        v.path: v.syncedAt,
     };
     for (final e in dir.listSync(recursive: true, followLinks: false)) {
       if (e is! File || isIgnoredFile(e.path)) continue;

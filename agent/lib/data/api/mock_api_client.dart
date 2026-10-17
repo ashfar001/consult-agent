@@ -10,11 +10,8 @@ import 'api_client.dart';
 /// Simulates latency and random network failures so the offline queue gets
 /// exercised. Writes are idempotent by client UUID like the real server.
 class MockApiClient implements ApiClient {
-  MockApiClient({
-    this.latencyMs = 500,
-    this.failureRate = 0.15,
-    Random? random,
-  }) : _random = random ?? Random() {
+  MockApiClient({this.latencyMs = 500, this.failureRate = 0.15, Random? random})
+    : _random = random ?? Random() {
     _seed();
   }
 
@@ -178,9 +175,7 @@ class MockApiClient implements ApiClient {
       f('f-4', '03_Structural/Column_Layout.dwg', 5, 3072, 'Meera'),
       f('f-5', '05_Exports/BOQ.xlsx', 1, 1024),
     ];
-    _files['p-103'] = [
-      f('f-6', '02_Drawings/School_Block.rvt', 7, 8192),
-    ];
+    _files['p-103'] = [f('f-6', '02_Drawings/School_Block.rvt', 7, 8192)];
   }
 
   /// Generates deterministic dummy content for a mock download URL.
@@ -233,10 +228,7 @@ class MockApiClient implements ApiClient {
     await _simulate();
     if (employeeId.trim().toUpperCase() != _validEmployeeId ||
         pin != _validPin) {
-      throw const ApiException(
-        'Invalid employee ID or PIN',
-        statusCode: 401,
-      );
+      throw const ApiException('Invalid employee ID or PIN', statusCode: 401);
     }
     return LoginResult(token: _token, worker: worker);
   }
@@ -273,15 +265,14 @@ class MockApiClient implements ApiClient {
     for (final hb in heartbeats) {
       final session = _sessions[hb.sessionId];
       if (session == null) {
-        throw ApiException(
-          'Unknown session ${hb.sessionId}',
-          statusCode: 422,
-        );
+        throw ApiException('Unknown session ${hb.sessionId}', statusCode: 422);
       }
       lastProjectId = session.projectId;
       if (!_seenHeartbeats.add(hb.clientId)) continue;
       final p = _project(session.projectId);
-      _projects[p.id] = p.copyWith(myUsedSeconds: p.myUsedSeconds + hb.activeSecs);
+      _projects[p.id] = p.copyWith(
+        myUsedSeconds: p.myUsedSeconds + hb.activeSecs,
+      );
       _todayActive += hb.activeSecs;
       _todayIdle += hb.idleSecs;
       _todayProjectActive.update(
@@ -338,9 +329,7 @@ class MockApiClient implements ApiClient {
   void _setCheckout(String fileId, String? by) {
     final loc = _findFile(fileId);
     final f = _files[loc.projectId]![loc.index];
-    if (f.checkedOutBy != null &&
-        f.checkedOutBy != worker.name &&
-        by != null) {
+    if (f.checkedOutBy != null && f.checkedOutBy != worker.name && by != null) {
       throw ApiException('In use by ${f.checkedOutBy}', statusCode: 409);
     }
     _files[loc.projectId]![loc.index] = RemoteFile(
@@ -400,7 +389,8 @@ class MockApiClient implements ApiClient {
   }) async {
     await _simulate();
     _requireAuth();
-    final up = _uploads[uploadId] ??
+    final up =
+        _uploads[uploadId] ??
         (throw ApiException('Unknown upload $uploadId', statusCode: 404));
     final files = _files.putIfAbsent(up.projectId, () => []);
     final i = files.indexWhere((f) => f.path == up.path);

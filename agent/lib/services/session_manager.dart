@@ -86,23 +86,22 @@ class SessionState {
     bool? overrun,
     String? Function()? notice,
     String? Function()? blockMessage,
-  }) =>
-      SessionState(
-        status: status ?? this.status,
-        session: session != null ? session() : this.session,
-        project: project != null ? project() : this.project,
-        task: task != null ? task() : this.task,
-        overtime: overtime ?? this.overtime,
-        todayActiveSecs: todayActiveSecs ?? this.todayActiveSecs,
-        serverUsedSecs: serverUsedSecs ?? this.serverUsedSecs,
-        unsyncedSecs: unsyncedSecs ?? this.unsyncedSecs,
-        breakTakenSecs: breakTakenSecs ?? this.breakTakenSecs,
-        breakRemainingSecs: breakRemainingSecs ?? this.breakRemainingSecs,
-        breakPieces: breakPieces ?? this.breakPieces,
-        overrun: overrun ?? this.overrun,
-        notice: notice != null ? notice() : this.notice,
-        blockMessage: blockMessage != null ? blockMessage() : this.blockMessage,
-      );
+  }) => SessionState(
+    status: status ?? this.status,
+    session: session != null ? session() : this.session,
+    project: project != null ? project() : this.project,
+    task: task != null ? task() : this.task,
+    overtime: overtime ?? this.overtime,
+    todayActiveSecs: todayActiveSecs ?? this.todayActiveSecs,
+    serverUsedSecs: serverUsedSecs ?? this.serverUsedSecs,
+    unsyncedSecs: unsyncedSecs ?? this.unsyncedSecs,
+    breakTakenSecs: breakTakenSecs ?? this.breakTakenSecs,
+    breakRemainingSecs: breakRemainingSecs ?? this.breakRemainingSecs,
+    breakPieces: breakPieces ?? this.breakPieces,
+    overrun: overrun ?? this.overrun,
+    notice: notice != null ? notice() : this.notice,
+    blockMessage: blockMessage != null ? blockMessage() : this.blockMessage,
+  );
 }
 
 /// Owns the worker's current session: samples activity, writes heartbeats to
@@ -287,14 +286,13 @@ class SessionManager extends Notifier<SessionState> {
     if (usage.level == UsageLevel.warning && !_warned) {
       _warned = true;
       state = state.copyWith(
-        notice: () => 'You have used 80% of your hours on ${project.code}. '
+        notice: () =>
+            'You have used 80% of your hours on ${project.code}. '
             '${formatHm(usage.remainingSecs)} left.',
       );
     } else if (usage.level == UsageLevel.over) {
       if (project.overrunMode == OverrunMode.block) {
-        await endSession(
-          blockMessage: 'Ask your manager for more hours.',
-        );
+        await endSession(blockMessage: 'Ask your manager for more hours.');
       } else if (!state.overrun) {
         state = state.copyWith(overrun: true);
       }
@@ -309,8 +307,10 @@ class SessionManager extends Notifier<SessionState> {
     if (s == null || project == null) return;
     final now = _clock();
     final day = DateTime(now.year, now.month, now.day);
-    final rows = await _db.sessionDao
-        .heartbeatsBetween(day, day.add(const Duration(days: 1)));
+    final rows = await _db.sessionDao.heartbeatsBetween(
+      day,
+      day.add(const Duration(days: 1)),
+    );
     final saved = rows.fold<int>(0, (a, r) => a + r.hb.activeSecs);
     final pending = _acc.pendingActiveSecs;
     final unsynced = await _db.sessionDao.unsyncedActiveSecs(project.id);
@@ -352,11 +352,7 @@ class SessionManager extends Notifier<SessionState> {
     await _db.outboxDao.enqueue(
       clientId: 'stop-$localId',
       kind: OutboxKind.sessionStop,
-      payload: {
-        'local_id': localId,
-        'ended_at': isoUtc(now),
-        'unclean': false,
-      },
+      payload: {'local_id': localId, 'ended_at': isoUtc(now), 'unclean': false},
       now: now,
     );
     ref.read(syncWorkerProvider).kick();
@@ -365,10 +361,10 @@ class SessionManager extends Notifier<SessionState> {
   // --------------------------------------------------------------- break
 
   BreakLedger _ledgerOf(List<BreakRow> rows) => BreakLedger(
-        allowanceSecs: _breakAllowance,
-        maxPieces: _breakMaxPieces,
-        pieces: [for (final r in rows) BreakPiece(r.startedAt, r.endedAt)],
-      );
+    allowanceSecs: _breakAllowance,
+    maxPieces: _breakMaxPieces,
+    pieces: [for (final r in rows) BreakPiece(r.startedAt, r.endedAt)],
+  );
 
   Future<BreakLedger> ledger() async =>
       _ledgerOf(await _db.breakDao.forDay(_dayFmt.format(_clock())));
@@ -455,6 +451,10 @@ class SessionManager extends Notifier<SessionState> {
   /// "End work" at the cut-off: the End Work form takes over.
   void declineOvertime() => state = const SessionState();
 
+  /// Queues an event for the manager (breaks, overtime, admin exit…).
+  Future<void> recordEvent(String type, Map<String, dynamic> data) =>
+      _event(type, data);
+
   Future<void> _event(String type, Map<String, dynamic> data) {
     final now = _clock();
     return _db.outboxDao.enqueue(
@@ -466,5 +466,6 @@ class SessionManager extends Notifier<SessionState> {
   }
 }
 
-final sessionManagerProvider =
-    NotifierProvider<SessionManager, SessionState>(SessionManager.new);
+final sessionManagerProvider = NotifierProvider<SessionManager, SessionState>(
+  SessionManager.new,
+);

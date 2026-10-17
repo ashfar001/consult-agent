@@ -18,13 +18,15 @@ class KvDao extends DatabaseAccessor<AgentDatabase> with _$KvDaoMixin {
   static const workerKey = 'worker';
 
   Future<String?> get(String key) async {
-    final row = await (select(kvEntries)..where((t) => t.key.equals(key)))
-        .getSingleOrNull();
+    final row = await (select(
+      kvEntries,
+    )..where((t) => t.key.equals(key))).getSingleOrNull();
     return row?.value;
   }
 
-  Future<void> put(String key, String value) => into(kvEntries)
-      .insertOnConflictUpdate(KvEntriesCompanion.insert(key: key, value: value));
+  Future<void> put(String key, String value) => into(
+    kvEntries,
+  ).insertOnConflictUpdate(KvEntriesCompanion.insert(key: key, value: value));
 
   Future<void> remove(String key) =>
       (delete(kvEntries)..where((t) => t.key.equals(key))).go();
@@ -63,9 +65,9 @@ class ProjectCacheDao extends DatabaseAccessor<AgentDatabase>
       });
 
   Future<({List<Project> projects, DateTime? fetchedAt})> load() async {
-    final rows = await (select(cachedProjects)
-          ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
-        .get();
+    final rows = await (select(
+      cachedProjects,
+    )..orderBy([(t) => OrderingTerm.asc(t.sortOrder)])).get();
     return (
       projects: [
         for (final r in rows) Project.fromJson(jsonDecode(r.json) as Json),
@@ -84,15 +86,16 @@ class SessionDao extends DatabaseAccessor<AgentDatabase>
 
   Future<void> insertSession(SessionsCompanion s) => into(sessions).insert(s);
 
-  Future<SessionRow?> byId(String localId) => (select(sessions)
-        ..where((t) => t.localId.equals(localId)))
-      .getSingleOrNull();
+  Future<SessionRow?> byId(String localId) => (select(
+    sessions,
+  )..where((t) => t.localId.equals(localId))).getSingleOrNull();
 
-  Future<SessionRow?> openSession() => (select(sessions)
-        ..where((t) => t.status.equals('open'))
-        ..orderBy([(t) => OrderingTerm.desc(t.startedAt)])
-        ..limit(1))
-      .getSingleOrNull();
+  Future<SessionRow?> openSession() =>
+      (select(sessions)
+            ..where((t) => t.status.equals('open'))
+            ..orderBy([(t) => OrderingTerm.desc(t.startedAt)])
+            ..limit(1))
+          .getSingleOrNull();
 
   Future<List<SessionRow>> openSessions() =>
       (select(sessions)..where((t) => t.status.equals('open'))).get();
@@ -101,18 +104,19 @@ class SessionDao extends DatabaseAccessor<AgentDatabase>
     String localId, {
     required DateTime endedAt,
     required String status,
-  }) =>
-      (update(sessions)..where((t) => t.localId.equals(localId))).write(
-        SessionsCompanion(endedAt: Value(endedAt), status: Value(status)),
-      );
+  }) => (update(sessions)..where((t) => t.localId.equals(localId))).write(
+    SessionsCompanion(endedAt: Value(endedAt), status: Value(status)),
+  );
 
   Future<void> setServerId(String localId, String serverId) =>
-      (update(sessions)..where((t) => t.localId.equals(localId)))
-          .write(SessionsCompanion(serverId: Value(serverId)));
+      (update(sessions)..where((t) => t.localId.equals(localId))).write(
+        SessionsCompanion(serverId: Value(serverId)),
+      );
 
   Future<void> setLastHeartbeat(String localId, DateTime at) =>
-      (update(sessions)..where((t) => t.localId.equals(localId)))
-          .write(SessionsCompanion(lastHeartbeatAt: Value(at)));
+      (update(sessions)..where((t) => t.localId.equals(localId))).write(
+        SessionsCompanion(lastHeartbeatAt: Value(at)),
+      );
 
   Future<void> insertHeartbeat(HeartbeatsCompanion hb) =>
       into(heartbeats).insert(hb, mode: InsertMode.insertOrIgnore);
@@ -129,27 +133,38 @@ class SessionDao extends DatabaseAccessor<AgentDatabase>
   Future<List<({HeartbeatRow hb, SessionRow session})>> sendableHeartbeats({
     int limit = 50,
   }) async {
-    final q = select(heartbeats).join([
-      innerJoin(sessions, sessions.localId.equalsExp(heartbeats.localSessionId)),
-    ])
-      ..where(heartbeats.syncedAt.isNull() & sessions.serverId.isNotNull())
-      ..orderBy([OrderingTerm.asc(heartbeats.fromTime)])
-      ..limit(limit);
+    final q =
+        select(heartbeats).join([
+            innerJoin(
+              sessions,
+              sessions.localId.equalsExp(heartbeats.localSessionId),
+            ),
+          ])
+          ..where(heartbeats.syncedAt.isNull() & sessions.serverId.isNotNull())
+          ..orderBy([OrderingTerm.asc(heartbeats.fromTime)])
+          ..limit(limit);
     return (await q.get())
-        .map((r) => (hb: r.readTable(heartbeats), session: r.readTable(sessions)))
+        .map(
+          (r) => (hb: r.readTable(heartbeats), session: r.readTable(sessions)),
+        )
         .toList();
   }
 
   Future<void> markHeartbeatsSynced(List<String> clientIds, DateTime at) =>
-      (update(heartbeats)..where((t) => t.clientId.isIn(clientIds)))
-          .write(HeartbeatsCompanion(syncedAt: Value(at)));
+      (update(heartbeats)..where((t) => t.clientId.isIn(clientIds))).write(
+        HeartbeatsCompanion(syncedAt: Value(at)),
+      );
 
   Future<bool> hasUnsyncedHeartbeats(String localSessionId) async {
-    final row = await (select(heartbeats)
-          ..where((t) =>
-              t.localSessionId.equals(localSessionId) & t.syncedAt.isNull())
-          ..limit(1))
-        .getSingleOrNull();
+    final row =
+        await (select(heartbeats)
+              ..where(
+                (t) =>
+                    t.localSessionId.equals(localSessionId) &
+                    t.syncedAt.isNull(),
+              )
+              ..limit(1))
+            .getSingleOrNull();
     return row != null;
   }
 
@@ -157,13 +172,19 @@ class SessionDao extends DatabaseAccessor<AgentDatabase>
   /// for one project. Overtime never counts against the allocation.
   Future<int> unsyncedActiveSecs(String projectId) async {
     final sum = heartbeats.activeSecs.sum();
-    final q = selectOnly(heartbeats).join([
-      innerJoin(sessions, sessions.localId.equalsExp(heartbeats.localSessionId)),
-    ])
-      ..addColumns([sum])
-      ..where(heartbeats.syncedAt.isNull() &
-          sessions.projectId.equals(projectId) &
-          sessions.kind.equals('normal'));
+    final q =
+        selectOnly(heartbeats).join([
+            innerJoin(
+              sessions,
+              sessions.localId.equalsExp(heartbeats.localSessionId),
+            ),
+          ])
+          ..addColumns([sum])
+          ..where(
+            heartbeats.syncedAt.isNull() &
+                sessions.projectId.equals(projectId) &
+                sessions.kind.equals('normal'),
+          );
     return (await q.map((r) => r.read(sum)).getSingle()) ?? 0;
   }
 
@@ -172,23 +193,33 @@ class SessionDao extends DatabaseAccessor<AgentDatabase>
     DateTime from,
     DateTime to,
   ) async {
-    final q = select(heartbeats).join([
-      innerJoin(sessions, sessions.localId.equalsExp(heartbeats.localSessionId)),
-    ])
-      ..where(heartbeats.fromTime.isBiggerOrEqualValue(from) &
-          heartbeats.fromTime.isSmallerThanValue(to))
-      ..orderBy([OrderingTerm.asc(heartbeats.fromTime)]);
+    final q =
+        select(heartbeats).join([
+            innerJoin(
+              sessions,
+              sessions.localId.equalsExp(heartbeats.localSessionId),
+            ),
+          ])
+          ..where(
+            heartbeats.fromTime.isBiggerOrEqualValue(from) &
+                heartbeats.fromTime.isSmallerThanValue(to),
+          )
+          ..orderBy([OrderingTerm.asc(heartbeats.fromTime)]);
     return (await q.get())
-        .map((r) => (hb: r.readTable(heartbeats), session: r.readTable(sessions)))
+        .map(
+          (r) => (hb: r.readTable(heartbeats), session: r.readTable(sessions)),
+        )
         .toList();
   }
 
   /// Sessions started in [from, to), oldest first.
   Future<List<SessionRow>> sessionsBetween(DateTime from, DateTime to) =>
       (select(sessions)
-            ..where((t) =>
-                t.startedAt.isBiggerOrEqualValue(from) &
-                t.startedAt.isSmallerThanValue(to))
+            ..where(
+              (t) =>
+                  t.startedAt.isBiggerOrEqualValue(from) &
+                  t.startedAt.isSmallerThanValue(to),
+            )
             ..orderBy([(t) => OrderingTerm.asc(t.startedAt)]))
           .get();
 
@@ -203,25 +234,26 @@ class BreakDao extends DatabaseAccessor<AgentDatabase> with _$BreakDaoMixin {
     required String day,
     required int piece,
     required DateTime at,
-  }) =>
-      into(breaks).insert(
-        BreaksCompanion.insert(day: day, piece: piece, startedAt: at),
-      );
+  }) => into(
+    breaks,
+  ).insert(BreaksCompanion.insert(day: day, piece: piece, startedAt: at));
 
-  Future<void> end(int id, DateTime at) =>
-      (update(breaks)..where((t) => t.id.equals(id)))
-          .write(BreaksCompanion(endedAt: Value(at)));
+  Future<void> end(int id, DateTime at) => (update(
+    breaks,
+  )..where((t) => t.id.equals(id))).write(BreaksCompanion(endedAt: Value(at)));
 
-  Future<BreakRow?> openBreak() => (select(breaks)
-        ..where((t) => t.endedAt.isNull())
-        ..orderBy([(t) => OrderingTerm.desc(t.startedAt)])
-        ..limit(1))
-      .getSingleOrNull();
+  Future<BreakRow?> openBreak() =>
+      (select(breaks)
+            ..where((t) => t.endedAt.isNull())
+            ..orderBy([(t) => OrderingTerm.desc(t.startedAt)])
+            ..limit(1))
+          .getSingleOrNull();
 
-  Future<List<BreakRow>> forDay(String day) => (select(breaks)
-        ..where((t) => t.day.equals(day))
-        ..orderBy([(t) => OrderingTerm.asc(t.startedAt)]))
-      .get();
+  Future<List<BreakRow>> forDay(String day) =>
+      (select(breaks)
+            ..where((t) => t.day.equals(day))
+            ..orderBy([(t) => OrderingTerm.asc(t.startedAt)]))
+          .get();
 }
 
 @DriftAccessor(tables: [FileVersions])
@@ -234,16 +266,15 @@ class FileDao extends DatabaseAccessor<AgentDatabase> with _$FileDaoMixin {
     required String fileId,
     required int version,
     required DateTime at,
-  }) =>
-      into(fileVersions).insertOnConflictUpdate(
-        FileVersionsCompanion.insert(
-          projectId: projectId,
-          path: path,
-          fileId: fileId,
-          version: version,
-          syncedAt: at,
-        ),
-      );
+  }) => into(fileVersions).insertOnConflictUpdate(
+    FileVersionsCompanion.insert(
+      projectId: projectId,
+      path: path,
+      fileId: fileId,
+      version: version,
+      syncedAt: at,
+    ),
+  );
 
   Future<List<FileVersionRow>> forProject(String projectId) =>
       (select(fileVersions)..where((t) => t.projectId.equals(projectId))).get();
@@ -256,14 +287,15 @@ class UploadDao extends DatabaseAccessor<AgentDatabase> with _$UploadDaoMixin {
   Future<void> enqueue(UploadsCompanion u) =>
       into(uploads).insert(u, mode: InsertMode.insertOrIgnore);
 
-  Future<List<UploadRow>> pending() => (select(uploads)
-        ..where((t) => t.state.isIn(['queued', 'uploading', 'uploaded']))
-        ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
-      .get();
+  Future<List<UploadRow>> pending() =>
+      (select(uploads)
+            ..where((t) => t.state.isIn(['queued', 'uploading', 'uploaded']))
+            ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+          .get();
 
-  Future<UploadRow?> byClientId(String clientId) => (select(uploads)
-        ..where((t) => t.clientId.equals(clientId)))
-      .getSingleOrNull();
+  Future<UploadRow?> byClientId(String clientId) => (select(
+    uploads,
+  )..where((t) => t.clientId.equals(clientId))).getSingleOrNull();
 
   Future<void> patch(String clientId, UploadsCompanion c) =>
       (update(uploads)..where((t) => t.clientId.equals(clientId))).write(c);
@@ -278,20 +310,19 @@ class ReportDao extends DatabaseAccessor<AgentDatabase> with _$ReportDaoMixin {
     required String workerId,
     required String json,
     required bool submitted,
-  }) =>
-      into(dailyReports).insertOnConflictUpdate(
-        DailyReportsCompanion.insert(
-          date: date,
-          workerId: workerId,
-          json: json,
-          submitted: Value(submitted),
-        ),
-      );
+  }) => into(dailyReports).insertOnConflictUpdate(
+    DailyReportsCompanion.insert(
+      date: date,
+      workerId: workerId,
+      json: json,
+      submitted: Value(submitted),
+    ),
+  );
 
   Future<Set<String>> submittedDates() async {
-    final rows = await (select(dailyReports)
-          ..where((t) => t.submitted.equals(true)))
-        .get();
+    final rows = await (select(
+      dailyReports,
+    )..where((t) => t.submitted.equals(true))).get();
     return rows.map((r) => r.date).toSet();
   }
 
@@ -322,17 +353,16 @@ class OutboxDao extends DatabaseAccessor<AgentDatabase> with _$OutboxDaoMixin {
     required String kind,
     required Json payload,
     required DateTime now,
-  }) =>
-      into(outbox).insert(
-        OutboxCompanion.insert(
-          clientId: clientId,
-          kind: kind,
-          payloadJson: jsonEncode(payload),
-          nextAttemptAt: now,
-          createdAt: now,
-        ),
-        mode: InsertMode.insertOrIgnore,
-      );
+  }) => into(outbox).insert(
+    OutboxCompanion.insert(
+      clientId: clientId,
+      kind: kind,
+      payloadJson: jsonEncode(payload),
+      nextAttemptAt: now,
+      createdAt: now,
+    ),
+    mode: InsertMode.insertOrIgnore,
+  );
 
   /// Items due at [now], in FIFO order.
   Future<List<OutboxRow>> due(DateTime now, {int limit = 20}) =>
@@ -356,9 +386,9 @@ class OutboxDao extends DatabaseAccessor<AgentDatabase> with _$OutboxDaoMixin {
 
   Future<int> pendingCount() async {
     final c = outbox.id.count();
-    return (await (selectOnly(outbox)..addColumns([c]))
-            .map((r) => r.read(c))
-            .getSingle()) ??
+    return (await (selectOnly(
+          outbox,
+        )..addColumns([c])).map((r) => r.read(c)).getSingle()) ??
         0;
   }
 }

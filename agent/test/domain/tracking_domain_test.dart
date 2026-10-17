@@ -33,13 +33,14 @@ void main() {
   group('ActivityAccumulator', () {
     final t0 = DateTime(2026, 10, 5, 9);
 
-    Sample at(int secs, {int idle = 0, String app = 'AutoCAD'}) =>
-        Sample(at: t0.add(Duration(seconds: secs)), idleSecs: idle, app: app);
+    Sample at(int secs, {int idle = 0, String app = 'AutoCAD'}) => Sample(
+      at: t0.add(Duration(seconds: secs)),
+      idleSecs: idle,
+      app: app,
+    );
 
-    ActivityAccumulator make() => ActivityAccumulator(
-          idleThresholdSecs: 300,
-          sliceSecs: 60,
-        )..reset(t0);
+    ActivityAccumulator make() =>
+        ActivityAccumulator(idleThresholdSecs: 300, sliceSecs: 60)..reset(t0);
 
     test('counts active time per app and emits a slice every 60 s', () {
       final acc = make();
@@ -112,9 +113,7 @@ void main() {
       ]);
       expect(two.canStart(t.add(const Duration(hours: 3))), isFalse);
 
-      final used = ledger([
-        BreakPiece(t, t.add(const Duration(minutes: 70))),
-      ]);
+      final used = ledger([BreakPiece(t, t.add(const Duration(minutes: 70)))]);
       final now = t.add(const Duration(hours: 3));
       expect(used.remainingSecs(now), 0);
       expect(used.overSecs(now), 10 * 60);
@@ -172,17 +171,16 @@ void main() {
       bool onBreak = false,
       bool busy = false,
       DateTime? dismissed,
-    }) =>
-        shouldPrompt(
-          running: running,
-          triggers: const {'acad.exe', 'revit.exe', 'sketchup.exe'},
-          hasSession: hasSession,
-          onBreak: onBreak,
-          flowBusy: busy,
-          now: now,
-          dismissedAt: dismissed,
-          retryAfter: const Duration(minutes: 5),
-        );
+    }) => shouldPrompt(
+      running: running,
+      triggers: const {'acad.exe', 'revit.exe', 'sketchup.exe'},
+      hasSession: hasSession,
+      onBreak: onBreak,
+      flowBusy: busy,
+      now: now,
+      dismissedAt: dismissed,
+      retryAfter: const Duration(minutes: 5),
+    );
 
     test('CAD running with nothing active prompts', () {
       expect(call(), isTrue);
@@ -203,10 +201,7 @@ void main() {
         call(dismissed: now.subtract(const Duration(minutes: 2))),
         isFalse,
       );
-      expect(
-        call(dismissed: now.subtract(const Duration(minutes: 5))),
-        isTrue,
-      );
+      expect(call(dismissed: now.subtract(const Duration(minutes: 5))), isTrue);
     });
   });
 

@@ -11,13 +11,15 @@ void main() {
   setUp(() => tmp = Directory.systemTemp.createTempSync('ca_cfg'));
   tearDown(() => tmp.deleteSync(recursive: true));
 
-  ConfigLoader loader({Map<String, String> env = const {}, bool mock = false}) =>
-      ConfigLoader(
-        programDataDir: tmp.path,
-        userProfileDir: p.join(tmp.path, 'user'),
-        environment: env,
-        mockDefine: mock,
-      );
+  ConfigLoader loader({
+    Map<String, String> env = const {},
+    bool mock = false,
+  }) => ConfigLoader(
+    programDataDir: tmp.path,
+    userProfileDir: p.join(tmp.path, 'user'),
+    environment: env,
+    mockDefine: mock,
+  );
 
   test('missing file gives defaults and writes a sample', () {
     final l = loader();
@@ -35,13 +37,15 @@ void main() {
   test('file values override defaults; unknown/invalid types ignored', () {
     final file = File(p.join(tmp.path, 'ConsultAgent', 'config.json'))
       ..createSync(recursive: true)
-      ..writeAsStringSync(jsonEncode({
-        'company_name': 'Acme Consultants',
-        'idle_threshold_secs': 120,
-        'mock_failure_rate': 0, // int where double expected
-        'heartbeat_interval_secs': 'sixty', // wrong type, ignored
-        'unknown': true,
-      }));
+      ..writeAsStringSync(
+        jsonEncode({
+          'company_name': 'Acme Consultants',
+          'idle_threshold_secs': 120,
+          'mock_failure_rate': 0, // int where double expected
+          'heartbeat_interval_secs': 'sixty', // wrong type, ignored
+          'unknown': true,
+        }),
+      );
     final c = loader().load();
     expect(file.existsSync(), isTrue);
     expect(c.companyName, 'Acme Consultants');

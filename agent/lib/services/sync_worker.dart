@@ -78,7 +78,9 @@ class SyncWorker {
   Future<bool> syncOnce({bool ignoreBackoff = false}) async {
     if (_running) return false;
     final now = clock();
-    if (!ignoreBackoff && _backoffUntil != null && now.isBefore(_backoffUntil!)) {
+    if (!ignoreBackoff &&
+        _backoffUntil != null &&
+        now.isBefore(_backoffUntil!)) {
       return false;
     }
     _running = true;
@@ -93,7 +95,9 @@ class SyncWorker {
     } on ApiException catch (e) {
       _failures++;
       final jitter = 0.8 + _random.nextDouble() * 0.4;
-      _backoffUntil = clock().add(Duration(seconds: backoffSecs(_failures, jitter)));
+      _backoffUntil = clock().add(
+        Duration(seconds: backoffSecs(_failures, jitter)),
+      );
       if (e.isNetwork) _setOnline(false);
       log.w('Sync paused: $e');
       return false;
@@ -169,10 +173,9 @@ class SyncWorker {
         log.e('Heartbeats rejected for ${first.localId}: $e');
         throw ApiException(e.message, statusCode: 503);
       }
-      await db.sessionDao.markHeartbeatsSynced(
-        [for (final b in beats) b.clientId],
-        clock(),
-      );
+      await db.sessionDao.markHeartbeatsSynced([
+        for (final b in beats) b.clientId,
+      ], clock());
       if (!_acks.isClosed) {
         _acks.add((projectId: first.projectId, usedSecs: ack.myUsedSeconds));
       }

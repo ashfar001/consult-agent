@@ -110,8 +110,7 @@ class Uploads extends Table {
   TextColumn get state => text()();
   TextColumn get note => text().withDefault(const Constant(''))();
   TextColumn get taskId => text().nullable()();
-  BoolColumn get completeTask =>
-      boolean().withDefault(const Constant(false))();
+  BoolColumn get completeTask => boolean().withDefault(const Constant(false))();
   IntColumn get attempts => integer().withDefault(const Constant(0))();
   TextColumn get resultFileId => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();

@@ -20,8 +20,11 @@ class RecoveryService {
     final open = await db.sessionDao.openSessions();
     for (final s in open) {
       final endedAt = s.lastHeartbeatAt ?? s.startedAt;
-      await db.sessionDao
-          .closeSession(s.localId, endedAt: endedAt, status: 'unclean');
+      await db.sessionDao.closeSession(
+        s.localId,
+        endedAt: endedAt,
+        status: 'unclean',
+      );
       await db.outboxDao.enqueue(
         clientId: 'stop-${s.localId}',
         kind: OutboxKind.sessionStop,

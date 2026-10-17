@@ -3,9 +3,12 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../domain/admin_gate.dart';
+import '../data/models/models.dart';
 import '../services/launch_detector.dart';
 import '../services/logging.dart';
 import '../services/session_manager.dart';
+import '../services/win32/hotkey_watcher.dart';
 import '../services/window_service.dart';
 import '../features/login/auth_controller.dart';
 import 'providers.dart';
@@ -24,6 +27,8 @@ class FlowCoordinator {
 
   final Ref _ref;
   FlowScreen _screen = FlowScreen.idle;
+  String _route = Routes.idle;
+  ({FlowScreen screen, String route})? _beforeAdmin;
   DateTime? _dismissedAt;
 
   GoRouter get _router => _ref.read(routerProvider);
@@ -41,6 +46,9 @@ class FlowCoordinator {
     detector.promptRequests.listen((_) => openPrompt());
     _ref.onDispose(detector.dispose);
     detector.start();
+    final hotkey = HotkeyWatcher()..start();
+    hotkey.pressed.listen((_) => openAdminExit());
+    _ref.onDispose(hotkey.dispose);
     // Demo builds show the prompt straight away so it can be tried anywhere.
     if (cfg.mockApi) unawaited(Future.microtask(openPrompt));
   }
@@ -65,7 +73,9 @@ class FlowCoordinator {
     final wasBreak = prev?.status == TrackStatus.onBreak;
     if (next.status == TrackStatus.onBreak && !wasBreak) {
       unawaited(_show(FlowScreen.small, Routes.breakRoute));
-    } else if (wasBreak && next.hasSession && next.status != TrackStatus.onBreak) {
+    } else if (wasBreak &&
+        next.hasSession &&
+        next.status != TrackStatus.onBreak) {
       unawaited(_show(FlowScreen.bar, Routes.bar));
     }
     if (next.status == TrackStatus.workdayEnded &&
@@ -87,6 +97,7 @@ class FlowCoordinator {
 
   Future<void> _show(FlowScreen screen, String route) async {
     _screen = screen;
+    _route = route;
     _router.go(route);
     await _window.setMode(switch (screen) {
       FlowScreen.idle => WindowMode.hidden,
@@ -129,7 +140,52 @@ class FlowCoordinator {
     return s.hasSession ? showBar() : showIdle();
   }
 
-  Future<void> exitApp() => _window.exitApp();
+  /// Super-admin exit: Ctrl+Shift+F12 from anywhere.
+  Future<void> openAdminExit() async {
+    if (_route == Routes.adminExit) return;
+    _beforeAdmin = (screen: _screen, route: _route);
+    await _show(FlowScreen.small, Routes.adminExit);
+  }
+
+  Future<void> cancelAdminExit() async {
+    final prev = _beforeAdmin;
+    _beforeAdmin = null;
+    await _show(prev?.screen ?? FlowScreen.idle, prev?.route ?? Routes.idle);
+  }
+
+  /// Checks the password; on success ends the session cleanly, tells the
+  /// server, and quits. Wrong attempts are reported to the manager.
+  Future<AdminResult> tryAdminExit(String password) async {
+    final gate = _ref.read(adminGateProvider);
+    final result = gate.verify(password);
+    final manager = _ref.read(sessionManagerProvider.notifier);
+    switch (result) {
+      case AdminResult.wrong:
+        log.w('Wrong admin exit password');
+        await manager.recordEvent(AgentEventType.adminExitFailed, {});
+      case AdminResult.ok:
+        log.w('Admin exit');
+        final s = _ref.read(sessionManagerProvider);
+        await manager.recordEvent(AgentEventType.adminExit, {
+          if (s.project != null) 'project_id': s.project!.id,
+          'had_session': s.hasSession,
+        });
+        if (s.hasSession) await manager.endSession();
+        try {
+          await _ref
+              .read(syncWorkerProvider)
+              .syncOnce(ignoreBackoff: true)
+              .timeout(const Duration(seconds: 3));
+        } on Object {
+          // Offline: the queued rows sync next time the agent runs.
+        }
+        await _window.exitApp();
+      case AdminResult.locked:
+      case AdminResult.notConfigured:
+        break;
+    }
+    return result;
+  }
 }
 
 final flowCoordinatorProvider = Provider<FlowCoordinator>((ref) {

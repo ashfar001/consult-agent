@@ -49,19 +49,19 @@ class ProjectSelectState {
     String? Function()? error,
     String? Function()? selectedProjectId,
     String? Function()? selectedTaskId,
-  }) =>
-      ProjectSelectState(
-        projects: projects ?? this.projects,
-        loading: loading ?? this.loading,
-        offline: offline ?? this.offline,
-        fetchedAt: fetchedAt ?? this.fetchedAt,
-        error: error != null ? error() : this.error,
-        selectedProjectId: selectedProjectId != null
-            ? selectedProjectId()
-            : this.selectedProjectId,
-        selectedTaskId:
-            selectedTaskId != null ? selectedTaskId() : this.selectedTaskId,
-      );
+  }) => ProjectSelectState(
+    projects: projects ?? this.projects,
+    loading: loading ?? this.loading,
+    offline: offline ?? this.offline,
+    fetchedAt: fetchedAt ?? this.fetchedAt,
+    error: error != null ? error() : this.error,
+    selectedProjectId: selectedProjectId != null
+        ? selectedProjectId()
+        : this.selectedProjectId,
+    selectedTaskId: selectedTaskId != null
+        ? selectedTaskId()
+        : this.selectedTaskId,
+  );
 }
 
 /// Why Start is unavailable.
@@ -109,9 +109,9 @@ class ProjectSelectController extends Notifier<ProjectSelectState> {
           fetchedAt: cached.fetchedAt,
           error: () => cached.projects.isEmpty
               ? (e.isRetryable
-                  ? 'Cannot reach the server and no saved project list is '
-                      'available. Check the network and try again.'
-                  : e.message)
+                    ? 'Cannot reach the server and no saved project list is '
+                          'available. Check the network and try again.'
+                    : e.message)
               : null,
         ),
       );
@@ -121,7 +121,10 @@ class ProjectSelectController extends Notifier<ProjectSelectState> {
   ProjectSelectState _keepSelection(ProjectSelectState s) {
     final project = s.selectedProject;
     if (project == null) {
-      return s.copyWith(selectedProjectId: () => null, selectedTaskId: () => null);
+      return s.copyWith(
+        selectedProjectId: () => null,
+        selectedTaskId: () => null,
+      );
     }
     if (!project.tasks.any((t) => t.id == s.selectedTaskId)) {
       return s.copyWith(selectedTaskId: () => _defaultTask(project)?.id);
@@ -165,14 +168,14 @@ class ProjectSelectController extends Notifier<ProjectSelectState> {
 
 final projectSelectControllerProvider =
     NotifierProvider<ProjectSelectController, ProjectSelectState>(
-  ProjectSelectController.new,
-);
+      ProjectSelectController.new,
+    );
 
 /// Set when Start is pressed; consumed by the opening flow (phase 2–3).
 final startSelectionProvider =
     NotifierProvider<StartSelectionNotifier, StartSelection?>(
-  StartSelectionNotifier.new,
-);
+      StartSelectionNotifier.new,
+    );
 
 class StartSelectionNotifier extends Notifier<StartSelection?> {
   @override
