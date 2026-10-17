@@ -19,8 +19,18 @@ part 'database.g.dart';
     FileVersions,
     Uploads,
     DailyReports,
+    Breaks,
   ],
-  daos: [KvDao, ProjectCacheDao, SessionDao, OutboxDao],
+  daos: [
+    KvDao,
+    ProjectCacheDao,
+    SessionDao,
+    OutboxDao,
+    BreakDao,
+    FileDao,
+    UploadDao,
+    ReportDao,
+  ],
 )
 class AgentDatabase extends _$AgentDatabase {
   AgentDatabase(super.e);
@@ -43,11 +53,17 @@ class AgentDatabase extends _$AgentDatabase {
   }
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(sessions, sessions.kind);
+            await m.createTable(breaks);
+          }
+        },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
         },

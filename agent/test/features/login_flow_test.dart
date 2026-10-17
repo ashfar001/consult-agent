@@ -6,7 +6,7 @@ import 'package:consult_agent/config/app_config.dart';
 import 'package:consult_agent/data/api/mock_api_client.dart';
 import 'package:consult_agent/data/db/database.dart';
 import 'package:consult_agent/services/device_info.dart';
-import 'package:consult_agent/services/lock_service.dart';
+import 'package:consult_agent/services/window_service.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,7 +35,7 @@ void main() {
           deviceInfoProvider.overrideWithValue(
             const DeviceInfo(deviceId: 'dev-1', pcName: 'DRAFT-PC-01'),
           ),
-          lockServiceProvider.overrideWithValue(FakeLockService()),
+          windowServiceProvider.overrideWithValue(FakeWindowService()),
           apiClientProvider.overrideWithValue(
             MockApiClient(latencyMs: 0, failureRate: 0, random: Random(1)),
           ),
@@ -43,6 +43,8 @@ void main() {
         child: const ConsultAgentApp(),
       ),
     );
+    await tester.pump();
+    await tester.pump();
     await tester.pump();
 
     expect(find.text('Test Consultants'), findsOneWidget);

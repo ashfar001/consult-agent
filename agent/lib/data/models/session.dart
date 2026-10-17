@@ -90,12 +90,15 @@ class HeartbeatAck {
   final bool overrun;
 }
 
-enum AgentEventType { agentRestarted, uncleanSession }
-
-String agentEventTypeToString(AgentEventType t) => switch (t) {
-      AgentEventType.agentRestarted => 'agent_restarted',
-      AgentEventType.uncleanSession => 'unclean_session',
-    };
+/// Event type strings for `POST /agent/events`.
+abstract final class AgentEventType {
+  static const agentRestarted = 'agent_restarted';
+  static const uncleanSession = 'unclean_session';
+  static const breakStart = 'break_start';
+  static const breakEnd = 'break_end';
+  static const overtimeStart = 'overtime_start';
+  static const workdayEnd = 'workday_end';
+}
 
 class AgentEvent {
   const AgentEvent({
@@ -106,13 +109,13 @@ class AgentEvent {
   });
 
   final String clientId;
-  final AgentEventType type;
+  final String type;
   final DateTime at;
   final Json data;
 
   Json toJson() => {
         'client_id': clientId,
-        'type': agentEventTypeToString(type),
+        'type': type,
         'at': isoUtc(at),
         'data': data,
       };

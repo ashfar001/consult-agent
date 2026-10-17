@@ -10,10 +10,18 @@ import '../../app/theme.dart';
 /// Shared chrome for every fullscreen lock-mode screen: company name,
 /// PC name and a live clock in the header.
 class LockScaffold extends ConsumerWidget {
-  const LockScaffold({super.key, required this.child, this.trailing});
+  const LockScaffold({
+    super.key,
+    required this.child,
+    this.trailing,
+    this.compact = false,
+  });
 
   final Widget child;
   final Widget? trailing;
+
+  /// Slim header for the small windows.
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -25,7 +33,10 @@ class LockScaffold extends ConsumerWidget {
         children: [
           Container(
             color: AppColors.primary,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 16 : 32,
+              vertical: compact ? 8 : 16,
+            ),
             child: Row(
               children: [
                 const Icon(Icons.apartment, color: Colors.white, size: 32),
@@ -37,14 +48,16 @@ class LockScaffold extends ConsumerWidget {
                 ),
                 const Spacer(),
                 if (trailing != null) ...[trailing!, const SizedBox(width: 24)],
-                const Icon(Icons.computer, color: Colors.white70, size: 20),
-                const SizedBox(width: 6),
-                Text(
-                  device.pcName,
-                  style: theme.textTheme.bodyLarge
-                      ?.copyWith(color: Colors.white70),
-                ),
-                const SizedBox(width: 24),
+                if (!compact) ...[
+                  const Icon(Icons.computer, color: Colors.white70, size: 20),
+                  const SizedBox(width: 6),
+                  Text(
+                    device.pcName,
+                    style: theme.textTheme.bodyLarge
+                        ?.copyWith(color: Colors.white70),
+                  ),
+                  const SizedBox(width: 24),
+                ],
                 const _Clock(),
               ],
             ),

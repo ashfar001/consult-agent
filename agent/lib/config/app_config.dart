@@ -1,5 +1,7 @@
 import 'package:path/path.dart' as p;
 
+import '../domain/app_classifier.dart';
+
 /// Runtime configuration, loaded from `%ProgramData%\ConsultAgent\config.json`.
 ///
 /// Holds no secrets: the API base URL is public and auth tokens live in the
@@ -18,6 +20,12 @@ class AppConfig {
     required this.logDir,
     required this.mockFailureRate,
     required this.mockLatencyMs,
+    this.breakAllowanceSecs = 3600,
+    this.breakMaxPieces = 2,
+    this.workdayEnd = '17:00',
+    this.launchPollSecs = 3,
+    this.promptRetryMins = 5,
+    this.maxUploadFileBytes = 200 * 1024 * 1024,
   });
 
   /// Defaults for a machine whose shared data lives under [programDataDir].
@@ -59,6 +67,27 @@ class AppConfig {
   /// Upper bound of simulated mock latency; actual latency is 40–100% of it.
   final int mockLatencyMs;
 
+  /// Lunch break allowance per day, and how many pieces it can be split in.
+  final int breakAllowanceSecs;
+  final int breakMaxPieces;
+
+  /// Local time (HH:mm) when normal hours end; later work is overtime.
+  final String workdayEnd;
+
+  /// How often running CAD processes are checked, and how long a dismissed
+  /// project prompt stays away.
+  final int launchPollSecs;
+  final int promptRetryMins;
+
+  /// Larger files are skipped by the daily backup.
+  final int maxUploadFileBytes;
+
+  /// Processes whose start raises the project prompt. Demo (mock) builds also
+  /// accept Notepad and Paint so the flow can be tried on a PC without CAD.
+  Set<String> get triggerApps => mockApi
+      ? {...cadExecutables, 'notepad.exe', 'mspaint.exe'}
+      : cadExecutables;
+
   /// Returns a copy with any keys present in [json] overriding this config.
   AppConfig mergeJson(Map<String, dynamic> json) {
     T pick<T>(String key, T current) {
@@ -84,6 +113,12 @@ class AppConfig {
       logDir: pick('log_dir', logDir),
       mockFailureRate: pick('mock_failure_rate', mockFailureRate),
       mockLatencyMs: pick('mock_latency_ms', mockLatencyMs),
+      breakAllowanceSecs: pick('break_allowance_secs', breakAllowanceSecs),
+      breakMaxPieces: pick('break_max_pieces', breakMaxPieces),
+      workdayEnd: pick('workday_end', workdayEnd),
+      launchPollSecs: pick('launch_poll_secs', launchPollSecs),
+      promptRetryMins: pick('prompt_retry_mins', promptRetryMins),
+      maxUploadFileBytes: pick('max_upload_file_bytes', maxUploadFileBytes),
     );
   }
 
@@ -103,5 +138,11 @@ class AppConfig {
         'log_dir': logDir,
         'mock_failure_rate': mockFailureRate,
         'mock_latency_ms': mockLatencyMs,
+        'break_allowance_secs': breakAllowanceSecs,
+        'break_max_pieces': breakMaxPieces,
+        'workday_end': workdayEnd,
+        'launch_poll_secs': launchPollSecs,
+        'prompt_retry_mins': promptRetryMins,
+        'max_upload_file_bytes': maxUploadFileBytes,
       };
 }

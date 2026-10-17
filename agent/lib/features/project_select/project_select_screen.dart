@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../app/flow.dart';
 import '../../app/router.dart';
 import '../../app/theme.dart';
 import '../../data/models/models.dart';
@@ -45,11 +46,22 @@ class _ProjectSelectScreenState extends ConsumerState<ProjectSelectScreen> {
     final block = controller.startBlock();
 
     return LockScaffold(
-      trailing: TextButton.icon(
-        style: TextButton.styleFrom(foregroundColor: Colors.white),
-        onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
-        icon: const Icon(Icons.logout),
-        label: Text('Not ${worker?.name.split(' ').first ?? 'you'}?'),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
+            onPressed: ref.read(flowCoordinatorProvider).dismissPrompt,
+            child: const Text('Not now'),
+          ),
+          TextButton.icon(
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
+            onPressed: () =>
+                ref.read(authControllerProvider.notifier).signOut(),
+            icon: const Icon(Icons.logout),
+            label: Text('Not ${worker?.name.split(' ').first ?? 'you'}?'),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(32, 24, 32, 24),

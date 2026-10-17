@@ -40,6 +40,9 @@ class Sessions extends Table {
   /// open | closed | unclean
   TextColumn get status => text()();
 
+  /// normal | overtime. Overtime never counts against project allocation.
+  TextColumn get kind => text().withDefault(const Constant('normal'))();
+
   /// True once sessions/start and (when closed) sessions/stop have synced.
   BoolColumn get synced => boolean().withDefault(const Constant(false))();
 
@@ -128,4 +131,14 @@ class DailyReports extends Table {
 
   @override
   Set<Column> get primaryKey => {date, workerId};
+}
+
+/// Lunch break pieces, one row per piece.
+@DataClassName('BreakRow')
+class Breaks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get day => text()(); // yyyy-MM-dd
+  IntColumn get piece => integer()();
+  DateTimeColumn get startedAt => dateTime()();
+  DateTimeColumn get endedAt => dateTime().nullable()();
 }

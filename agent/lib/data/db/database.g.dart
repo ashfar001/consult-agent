@@ -619,6 +619,16 @@ class $SessionsTable extends Sessions
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('normal'),
+  );
   static const VerificationMeta _syncedMeta = const VerificationMeta('synced');
   @override
   late final GeneratedColumn<bool> synced = GeneratedColumn<bool>(
@@ -643,6 +653,7 @@ class $SessionsTable extends Sessions
     endedAt,
     lastHeartbeatAt,
     status,
+    kind,
     synced,
   ];
   @override
@@ -726,6 +737,12 @@ class $SessionsTable extends Sessions
     } else if (isInserting) {
       context.missing(_statusMeta);
     }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    }
     if (data.containsKey('synced')) {
       context.handle(
         _syncedMeta,
@@ -777,6 +794,10 @@ class $SessionsTable extends Sessions
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
       synced: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}synced'],
@@ -803,6 +824,9 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
   /// open | closed | unclean
   final String status;
 
+  /// normal | overtime. Overtime never counts against project allocation.
+  final String kind;
+
   /// True once sessions/start and (when closed) sessions/stop have synced.
   final bool synced;
   const SessionRow({
@@ -815,6 +839,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     this.endedAt,
     this.lastHeartbeatAt,
     required this.status,
+    required this.kind,
     required this.synced,
   });
   @override
@@ -835,6 +860,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       map['last_heartbeat_at'] = Variable<DateTime>(lastHeartbeatAt);
     }
     map['status'] = Variable<String>(status);
+    map['kind'] = Variable<String>(kind);
     map['synced'] = Variable<bool>(synced);
     return map;
   }
@@ -856,6 +882,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
           ? const Value.absent()
           : Value(lastHeartbeatAt),
       status: Value(status),
+      kind: Value(kind),
       synced: Value(synced),
     );
   }
@@ -875,6 +902,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       endedAt: serializer.fromJson<DateTime?>(json['endedAt']),
       lastHeartbeatAt: serializer.fromJson<DateTime?>(json['lastHeartbeatAt']),
       status: serializer.fromJson<String>(json['status']),
+      kind: serializer.fromJson<String>(json['kind']),
       synced: serializer.fromJson<bool>(json['synced']),
     );
   }
@@ -891,6 +919,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       'endedAt': serializer.toJson<DateTime?>(endedAt),
       'lastHeartbeatAt': serializer.toJson<DateTime?>(lastHeartbeatAt),
       'status': serializer.toJson<String>(status),
+      'kind': serializer.toJson<String>(kind),
       'synced': serializer.toJson<bool>(synced),
     };
   }
@@ -905,6 +934,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     Value<DateTime?> endedAt = const Value.absent(),
     Value<DateTime?> lastHeartbeatAt = const Value.absent(),
     String? status,
+    String? kind,
     bool? synced,
   }) => SessionRow(
     localId: localId ?? this.localId,
@@ -918,6 +948,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
         ? lastHeartbeatAt.value
         : this.lastHeartbeatAt,
     status: status ?? this.status,
+    kind: kind ?? this.kind,
     synced: synced ?? this.synced,
   );
   SessionRow copyWithCompanion(SessionsCompanion data) {
@@ -933,6 +964,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
           ? data.lastHeartbeatAt.value
           : this.lastHeartbeatAt,
       status: data.status.present ? data.status.value : this.status,
+      kind: data.kind.present ? data.kind.value : this.kind,
       synced: data.synced.present ? data.synced.value : this.synced,
     );
   }
@@ -949,6 +981,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
           ..write('endedAt: $endedAt, ')
           ..write('lastHeartbeatAt: $lastHeartbeatAt, ')
           ..write('status: $status, ')
+          ..write('kind: $kind, ')
           ..write('synced: $synced')
           ..write(')'))
         .toString();
@@ -965,6 +998,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     endedAt,
     lastHeartbeatAt,
     status,
+    kind,
     synced,
   );
   @override
@@ -980,6 +1014,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
           other.endedAt == this.endedAt &&
           other.lastHeartbeatAt == this.lastHeartbeatAt &&
           other.status == this.status &&
+          other.kind == this.kind &&
           other.synced == this.synced);
 }
 
@@ -993,6 +1028,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
   final Value<DateTime?> endedAt;
   final Value<DateTime?> lastHeartbeatAt;
   final Value<String> status;
+  final Value<String> kind;
   final Value<bool> synced;
   final Value<int> rowid;
   const SessionsCompanion({
@@ -1005,6 +1041,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     this.endedAt = const Value.absent(),
     this.lastHeartbeatAt = const Value.absent(),
     this.status = const Value.absent(),
+    this.kind = const Value.absent(),
     this.synced = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1018,6 +1055,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     this.endedAt = const Value.absent(),
     this.lastHeartbeatAt = const Value.absent(),
     required String status,
+    this.kind = const Value.absent(),
     this.synced = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : localId = Value(localId),
@@ -1036,6 +1074,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     Expression<DateTime>? endedAt,
     Expression<DateTime>? lastHeartbeatAt,
     Expression<String>? status,
+    Expression<String>? kind,
     Expression<bool>? synced,
     Expression<int>? rowid,
   }) {
@@ -1049,6 +1088,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
       if (endedAt != null) 'ended_at': endedAt,
       if (lastHeartbeatAt != null) 'last_heartbeat_at': lastHeartbeatAt,
       if (status != null) 'status': status,
+      if (kind != null) 'kind': kind,
       if (synced != null) 'synced': synced,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1064,6 +1104,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     Value<DateTime?>? endedAt,
     Value<DateTime?>? lastHeartbeatAt,
     Value<String>? status,
+    Value<String>? kind,
     Value<bool>? synced,
     Value<int>? rowid,
   }) {
@@ -1077,6 +1118,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
       endedAt: endedAt ?? this.endedAt,
       lastHeartbeatAt: lastHeartbeatAt ?? this.lastHeartbeatAt,
       status: status ?? this.status,
+      kind: kind ?? this.kind,
       synced: synced ?? this.synced,
       rowid: rowid ?? this.rowid,
     );
@@ -1112,6 +1154,9 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
     if (synced.present) {
       map['synced'] = Variable<bool>(synced.value);
     }
@@ -1133,6 +1178,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
           ..write('endedAt: $endedAt, ')
           ..write('lastHeartbeatAt: $lastHeartbeatAt, ')
           ..write('status: $status, ')
+          ..write('kind: $kind, ')
           ..write('synced: $synced, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3712,6 +3758,348 @@ class DailyReportsCompanion extends UpdateCompanion<DailyReportRow> {
   }
 }
 
+class $BreaksTable extends Breaks with TableInfo<$BreaksTable, BreakRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BreaksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _dayMeta = const VerificationMeta('day');
+  @override
+  late final GeneratedColumn<String> day = GeneratedColumn<String>(
+    'day',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pieceMeta = const VerificationMeta('piece');
+  @override
+  late final GeneratedColumn<int> piece = GeneratedColumn<int>(
+    'piece',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+    'started_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endedAtMeta = const VerificationMeta(
+    'endedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endedAt = GeneratedColumn<DateTime>(
+    'ended_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, day, piece, startedAt, endedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'breaks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BreakRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('day')) {
+      context.handle(
+        _dayMeta,
+        day.isAcceptableOrUnknown(data['day']!, _dayMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dayMeta);
+    }
+    if (data.containsKey('piece')) {
+      context.handle(
+        _pieceMeta,
+        piece.isAcceptableOrUnknown(data['piece']!, _pieceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_pieceMeta);
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startedAtMeta);
+    }
+    if (data.containsKey('ended_at')) {
+      context.handle(
+        _endedAtMeta,
+        endedAt.isAcceptableOrUnknown(data['ended_at']!, _endedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  BreakRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BreakRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      day: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}day'],
+      )!,
+      piece: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}piece'],
+      )!,
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}started_at'],
+      )!,
+      endedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}ended_at'],
+      ),
+    );
+  }
+
+  @override
+  $BreaksTable createAlias(String alias) {
+    return $BreaksTable(attachedDatabase, alias);
+  }
+}
+
+class BreakRow extends DataClass implements Insertable<BreakRow> {
+  final int id;
+  final String day;
+  final int piece;
+  final DateTime startedAt;
+  final DateTime? endedAt;
+  const BreakRow({
+    required this.id,
+    required this.day,
+    required this.piece,
+    required this.startedAt,
+    this.endedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['day'] = Variable<String>(day);
+    map['piece'] = Variable<int>(piece);
+    map['started_at'] = Variable<DateTime>(startedAt);
+    if (!nullToAbsent || endedAt != null) {
+      map['ended_at'] = Variable<DateTime>(endedAt);
+    }
+    return map;
+  }
+
+  BreaksCompanion toCompanion(bool nullToAbsent) {
+    return BreaksCompanion(
+      id: Value(id),
+      day: Value(day),
+      piece: Value(piece),
+      startedAt: Value(startedAt),
+      endedAt: endedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endedAt),
+    );
+  }
+
+  factory BreakRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BreakRow(
+      id: serializer.fromJson<int>(json['id']),
+      day: serializer.fromJson<String>(json['day']),
+      piece: serializer.fromJson<int>(json['piece']),
+      startedAt: serializer.fromJson<DateTime>(json['startedAt']),
+      endedAt: serializer.fromJson<DateTime?>(json['endedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'day': serializer.toJson<String>(day),
+      'piece': serializer.toJson<int>(piece),
+      'startedAt': serializer.toJson<DateTime>(startedAt),
+      'endedAt': serializer.toJson<DateTime?>(endedAt),
+    };
+  }
+
+  BreakRow copyWith({
+    int? id,
+    String? day,
+    int? piece,
+    DateTime? startedAt,
+    Value<DateTime?> endedAt = const Value.absent(),
+  }) => BreakRow(
+    id: id ?? this.id,
+    day: day ?? this.day,
+    piece: piece ?? this.piece,
+    startedAt: startedAt ?? this.startedAt,
+    endedAt: endedAt.present ? endedAt.value : this.endedAt,
+  );
+  BreakRow copyWithCompanion(BreaksCompanion data) {
+    return BreakRow(
+      id: data.id.present ? data.id.value : this.id,
+      day: data.day.present ? data.day.value : this.day,
+      piece: data.piece.present ? data.piece.value : this.piece,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      endedAt: data.endedAt.present ? data.endedAt.value : this.endedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BreakRow(')
+          ..write('id: $id, ')
+          ..write('day: $day, ')
+          ..write('piece: $piece, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('endedAt: $endedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, day, piece, startedAt, endedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BreakRow &&
+          other.id == this.id &&
+          other.day == this.day &&
+          other.piece == this.piece &&
+          other.startedAt == this.startedAt &&
+          other.endedAt == this.endedAt);
+}
+
+class BreaksCompanion extends UpdateCompanion<BreakRow> {
+  final Value<int> id;
+  final Value<String> day;
+  final Value<int> piece;
+  final Value<DateTime> startedAt;
+  final Value<DateTime?> endedAt;
+  const BreaksCompanion({
+    this.id = const Value.absent(),
+    this.day = const Value.absent(),
+    this.piece = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.endedAt = const Value.absent(),
+  });
+  BreaksCompanion.insert({
+    this.id = const Value.absent(),
+    required String day,
+    required int piece,
+    required DateTime startedAt,
+    this.endedAt = const Value.absent(),
+  }) : day = Value(day),
+       piece = Value(piece),
+       startedAt = Value(startedAt);
+  static Insertable<BreakRow> custom({
+    Expression<int>? id,
+    Expression<String>? day,
+    Expression<int>? piece,
+    Expression<DateTime>? startedAt,
+    Expression<DateTime>? endedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (day != null) 'day': day,
+      if (piece != null) 'piece': piece,
+      if (startedAt != null) 'started_at': startedAt,
+      if (endedAt != null) 'ended_at': endedAt,
+    });
+  }
+
+  BreaksCompanion copyWith({
+    Value<int>? id,
+    Value<String>? day,
+    Value<int>? piece,
+    Value<DateTime>? startedAt,
+    Value<DateTime?>? endedAt,
+  }) {
+    return BreaksCompanion(
+      id: id ?? this.id,
+      day: day ?? this.day,
+      piece: piece ?? this.piece,
+      startedAt: startedAt ?? this.startedAt,
+      endedAt: endedAt ?? this.endedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (day.present) {
+      map['day'] = Variable<String>(day.value);
+    }
+    if (piece.present) {
+      map['piece'] = Variable<int>(piece.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (endedAt.present) {
+      map['ended_at'] = Variable<DateTime>(endedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BreaksCompanion(')
+          ..write('id: $id, ')
+          ..write('day: $day, ')
+          ..write('piece: $piece, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('endedAt: $endedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AgentDatabase extends GeneratedDatabase {
   _$AgentDatabase(QueryExecutor e) : super(e);
   $AgentDatabaseManager get managers => $AgentDatabaseManager(this);
@@ -3723,12 +4111,17 @@ abstract class _$AgentDatabase extends GeneratedDatabase {
   late final $FileVersionsTable fileVersions = $FileVersionsTable(this);
   late final $UploadsTable uploads = $UploadsTable(this);
   late final $DailyReportsTable dailyReports = $DailyReportsTable(this);
+  late final $BreaksTable breaks = $BreaksTable(this);
   late final KvDao kvDao = KvDao(this as AgentDatabase);
   late final ProjectCacheDao projectCacheDao = ProjectCacheDao(
     this as AgentDatabase,
   );
   late final SessionDao sessionDao = SessionDao(this as AgentDatabase);
   late final OutboxDao outboxDao = OutboxDao(this as AgentDatabase);
+  late final BreakDao breakDao = BreakDao(this as AgentDatabase);
+  late final FileDao fileDao = FileDao(this as AgentDatabase);
+  late final UploadDao uploadDao = UploadDao(this as AgentDatabase);
+  late final ReportDao reportDao = ReportDao(this as AgentDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3742,6 +4135,7 @@ abstract class _$AgentDatabase extends GeneratedDatabase {
     fileVersions,
     uploads,
     dailyReports,
+    breaks,
   ];
 }
 
@@ -4076,6 +4470,7 @@ typedef $$SessionsTableCreateCompanionBuilder =
       Value<DateTime?> endedAt,
       Value<DateTime?> lastHeartbeatAt,
       required String status,
+      Value<String> kind,
       Value<bool> synced,
       Value<int> rowid,
     });
@@ -4090,6 +4485,7 @@ typedef $$SessionsTableUpdateCompanionBuilder =
       Value<DateTime?> endedAt,
       Value<DateTime?> lastHeartbeatAt,
       Value<String> status,
+      Value<String> kind,
       Value<bool> synced,
       Value<int> rowid,
     });
@@ -4168,6 +4564,11 @@ class $$SessionsTableFilterComposer
 
   ColumnFilters<String> get status => $composableBuilder(
     column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4256,6 +4657,11 @@ class $$SessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get synced => $composableBuilder(
     column: $table.synced,
     builder: (column) => ColumnOrderings(column),
@@ -4299,6 +4705,9 @@ class $$SessionsTableAnnotationComposer
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
 
   GeneratedColumn<bool> get synced =>
       $composableBuilder(column: $table.synced, builder: (column) => column);
@@ -4366,6 +4775,7 @@ class $$SessionsTableTableManager
                 Value<DateTime?> endedAt = const Value.absent(),
                 Value<DateTime?> lastHeartbeatAt = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String> kind = const Value.absent(),
                 Value<bool> synced = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SessionsCompanion(
@@ -4378,6 +4788,7 @@ class $$SessionsTableTableManager
                 endedAt: endedAt,
                 lastHeartbeatAt: lastHeartbeatAt,
                 status: status,
+                kind: kind,
                 synced: synced,
                 rowid: rowid,
               ),
@@ -4392,6 +4803,7 @@ class $$SessionsTableTableManager
                 Value<DateTime?> endedAt = const Value.absent(),
                 Value<DateTime?> lastHeartbeatAt = const Value.absent(),
                 required String status,
+                Value<String> kind = const Value.absent(),
                 Value<bool> synced = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SessionsCompanion.insert(
@@ -4404,6 +4816,7 @@ class $$SessionsTableTableManager
                 endedAt: endedAt,
                 lastHeartbeatAt: lastHeartbeatAt,
                 status: status,
+                kind: kind,
                 synced: synced,
                 rowid: rowid,
               ),
@@ -5863,6 +6276,194 @@ typedef $$DailyReportsTableProcessedTableManager =
       DailyReportRow,
       PrefetchHooks Function()
     >;
+typedef $$BreaksTableCreateCompanionBuilder =
+    BreaksCompanion Function({
+      Value<int> id,
+      required String day,
+      required int piece,
+      required DateTime startedAt,
+      Value<DateTime?> endedAt,
+    });
+typedef $$BreaksTableUpdateCompanionBuilder =
+    BreaksCompanion Function({
+      Value<int> id,
+      Value<String> day,
+      Value<int> piece,
+      Value<DateTime> startedAt,
+      Value<DateTime?> endedAt,
+    });
+
+class $$BreaksTableFilterComposer
+    extends Composer<_$AgentDatabase, $BreaksTable> {
+  $$BreaksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get piece => $composableBuilder(
+    column: $table.piece,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endedAt => $composableBuilder(
+    column: $table.endedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BreaksTableOrderingComposer
+    extends Composer<_$AgentDatabase, $BreaksTable> {
+  $$BreaksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get piece => $composableBuilder(
+    column: $table.piece,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endedAt => $composableBuilder(
+    column: $table.endedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BreaksTableAnnotationComposer
+    extends Composer<_$AgentDatabase, $BreaksTable> {
+  $$BreaksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get day =>
+      $composableBuilder(column: $table.day, builder: (column) => column);
+
+  GeneratedColumn<int> get piece =>
+      $composableBuilder(column: $table.piece, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endedAt =>
+      $composableBuilder(column: $table.endedAt, builder: (column) => column);
+}
+
+class $$BreaksTableTableManager
+    extends
+        RootTableManager<
+          _$AgentDatabase,
+          $BreaksTable,
+          BreakRow,
+          $$BreaksTableFilterComposer,
+          $$BreaksTableOrderingComposer,
+          $$BreaksTableAnnotationComposer,
+          $$BreaksTableCreateCompanionBuilder,
+          $$BreaksTableUpdateCompanionBuilder,
+          (BreakRow, BaseReferences<_$AgentDatabase, $BreaksTable, BreakRow>),
+          BreakRow,
+          PrefetchHooks Function()
+        > {
+  $$BreaksTableTableManager(_$AgentDatabase db, $BreaksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BreaksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BreaksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BreaksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> day = const Value.absent(),
+                Value<int> piece = const Value.absent(),
+                Value<DateTime> startedAt = const Value.absent(),
+                Value<DateTime?> endedAt = const Value.absent(),
+              }) => BreaksCompanion(
+                id: id,
+                day: day,
+                piece: piece,
+                startedAt: startedAt,
+                endedAt: endedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String day,
+                required int piece,
+                required DateTime startedAt,
+                Value<DateTime?> endedAt = const Value.absent(),
+              }) => BreaksCompanion.insert(
+                id: id,
+                day: day,
+                piece: piece,
+                startedAt: startedAt,
+                endedAt: endedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BreaksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AgentDatabase,
+      $BreaksTable,
+      BreakRow,
+      $$BreaksTableFilterComposer,
+      $$BreaksTableOrderingComposer,
+      $$BreaksTableAnnotationComposer,
+      $$BreaksTableCreateCompanionBuilder,
+      $$BreaksTableUpdateCompanionBuilder,
+      (BreakRow, BaseReferences<_$AgentDatabase, $BreaksTable, BreakRow>),
+      BreakRow,
+      PrefetchHooks Function()
+    >;
 
 class $AgentDatabaseManager {
   final _$AgentDatabase _db;
@@ -5883,4 +6484,6 @@ class $AgentDatabaseManager {
       $$UploadsTableTableManager(_db, _db.uploads);
   $$DailyReportsTableTableManager get dailyReports =>
       $$DailyReportsTableTableManager(_db, _db.dailyReports);
+  $$BreaksTableTableManager get breaks =>
+      $$BreaksTableTableManager(_db, _db.breaks);
 }

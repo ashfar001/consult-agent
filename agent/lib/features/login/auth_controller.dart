@@ -52,7 +52,13 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
-  /// Returns to the lock screen (end of day, switch project, overrun block).
+  /// Re-checks whether a report is still owed (after submitting one).
+  Future<void> refreshPending() async {
+    final pending = await ref.read(pendingReportProvider)();
+    state = AuthState(worker: state.worker, pendingReport: pending);
+  }
+
+  /// Returns to the sign-in prompt (end of day, dismissed, hours ran out).
   void signOut({String? message}) {
     state = AuthState(error: message);
   }

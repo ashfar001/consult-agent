@@ -11,9 +11,10 @@ import '../config/config_loader.dart';
 import '../data/db/daos.dart';
 import '../data/db/database.dart';
 import '../services/device_info.dart';
-import '../services/lock_service.dart';
+import '../services/window_service.dart';
 import '../services/logging.dart';
 import 'app.dart';
+import '../services/session_manager.dart';
 import 'providers.dart';
 
 /// Starts the agent: dirs, logging, config, DB, device id, window, app.
@@ -43,23 +44,31 @@ Future<void> bootstrap() async {
     pcName: DeviceInfo.currentPcName(),
   );
 
-  final lock = WindowLockService();
-  await lock.init();
-  await lock.enterLockMode();
+  final window = DesktopWindowService();
+  await window.init();
 
-  runApp(
-    ProviderScope(
-      // Failures are surfaced by controllers; never auto-retry silently.
-      retry: (_, _) => null,
-      overrides: [
-        configProvider.overrideWithValue(config),
-        dbProvider.overrideWithValue(db),
-        deviceInfoProvider.overrideWithValue(device),
-        lockServiceProvider.overrideWithValue(lock),
-      ],
-      child: const ConsultAgentApp(),
-    ),
+  final container = ProviderContainer(
+    retry: (_, _) => null,
+    overrides: [
+      configProvider.overrideWithValue(config),
+      dbProvider.overrideWithValue(db),
+      deviceInfoProvider.overrideWithValue(device),
+      windowServiceProvider.overrideWithValue(window),
+    ],
   );
+
+  // A crash or shutdown mid-session: close it at the last heartbeat and
+  // require the report before the next one.
+  await container.read(recoveryServiceProvider).recoverUncleanSessions();
+  await container.read(authServiceProvider).restore();
+  container.read(syncWorkerProvider).start();
+  // Created now so a running session is picked up straight away.
+  container.read(sessionManagerProvider);
+
+  runApp(UncontrolledProviderScope(
+    container: container,
+    child: const ConsultAgentApp(),
+  ));
 }
 
 /// Standard users may lack write access to ProgramData; fall back to a

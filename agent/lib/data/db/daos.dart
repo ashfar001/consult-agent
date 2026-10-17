@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
+import 'package:intl/intl.dart';
 
 import '../models/models.dart';
 import 'database.dart';
@@ -83,11 +84,35 @@ class SessionDao extends DatabaseAccessor<AgentDatabase>
 
   Future<void> insertSession(SessionsCompanion s) => into(sessions).insert(s);
 
+  Future<SessionRow?> byId(String localId) => (select(sessions)
+        ..where((t) => t.localId.equals(localId)))
+      .getSingleOrNull();
+
   Future<SessionRow?> openSession() => (select(sessions)
         ..where((t) => t.status.equals('open'))
         ..orderBy([(t) => OrderingTerm.desc(t.startedAt)])
         ..limit(1))
       .getSingleOrNull();
+
+  Future<List<SessionRow>> openSessions() =>
+      (select(sessions)..where((t) => t.status.equals('open'))).get();
+
+  Future<void> closeSession(
+    String localId, {
+    required DateTime endedAt,
+    required String status,
+  }) =>
+      (update(sessions)..where((t) => t.localId.equals(localId))).write(
+        SessionsCompanion(endedAt: Value(endedAt), status: Value(status)),
+      );
+
+  Future<void> setServerId(String localId, String serverId) =>
+      (update(sessions)..where((t) => t.localId.equals(localId)))
+          .write(SessionsCompanion(serverId: Value(serverId)));
+
+  Future<void> setLastHeartbeat(String localId, DateTime at) =>
+      (update(sessions)..where((t) => t.localId.equals(localId)))
+          .write(SessionsCompanion(lastHeartbeatAt: Value(at)));
 
   Future<void> insertHeartbeat(HeartbeatsCompanion hb) =>
       into(heartbeats).insert(hb, mode: InsertMode.insertOrIgnore);
@@ -100,8 +125,36 @@ class SessionDao extends DatabaseAccessor<AgentDatabase>
             ..limit(limit))
           .get();
 
+  /// Unsynced heartbeats whose session already has a server id.
+  Future<List<({HeartbeatRow hb, SessionRow session})>> sendableHeartbeats({
+    int limit = 50,
+  }) async {
+    final q = select(heartbeats).join([
+      innerJoin(sessions, sessions.localId.equalsExp(heartbeats.localSessionId)),
+    ])
+      ..where(heartbeats.syncedAt.isNull() & sessions.serverId.isNotNull())
+      ..orderBy([OrderingTerm.asc(heartbeats.fromTime)])
+      ..limit(limit);
+    return (await q.get())
+        .map((r) => (hb: r.readTable(heartbeats), session: r.readTable(sessions)))
+        .toList();
+  }
+
+  Future<void> markHeartbeatsSynced(List<String> clientIds, DateTime at) =>
+      (update(heartbeats)..where((t) => t.clientId.isIn(clientIds)))
+          .write(HeartbeatsCompanion(syncedAt: Value(at)));
+
+  Future<bool> hasUnsyncedHeartbeats(String localSessionId) async {
+    final row = await (select(heartbeats)
+          ..where((t) =>
+              t.localSessionId.equals(localSessionId) & t.syncedAt.isNull())
+          ..limit(1))
+        .getSingleOrNull();
+    return row != null;
+  }
+
   /// Active seconds recorded locally but not yet acknowledged by the server,
-  /// for one project. Added to server `my_used_seconds` in the UI.
+  /// for one project. Overtime never counts against the allocation.
   Future<int> unsyncedActiveSecs(String projectId) async {
     final sum = heartbeats.activeSecs.sum();
     final q = selectOnly(heartbeats).join([
@@ -109,8 +162,153 @@ class SessionDao extends DatabaseAccessor<AgentDatabase>
     ])
       ..addColumns([sum])
       ..where(heartbeats.syncedAt.isNull() &
-          sessions.projectId.equals(projectId));
+          sessions.projectId.equals(projectId) &
+          sessions.kind.equals('normal'));
     return (await q.map((r) => r.read(sum)).getSingle()) ?? 0;
+  }
+
+  /// Heartbeat rows (with their session) whose slice started in [from, to).
+  Future<List<({HeartbeatRow hb, SessionRow session})>> heartbeatsBetween(
+    DateTime from,
+    DateTime to,
+  ) async {
+    final q = select(heartbeats).join([
+      innerJoin(sessions, sessions.localId.equalsExp(heartbeats.localSessionId)),
+    ])
+      ..where(heartbeats.fromTime.isBiggerOrEqualValue(from) &
+          heartbeats.fromTime.isSmallerThanValue(to))
+      ..orderBy([OrderingTerm.asc(heartbeats.fromTime)]);
+    return (await q.get())
+        .map((r) => (hb: r.readTable(heartbeats), session: r.readTable(sessions)))
+        .toList();
+  }
+
+  /// Sessions started in [from, to), oldest first.
+  Future<List<SessionRow>> sessionsBetween(DateTime from, DateTime to) =>
+      (select(sessions)
+            ..where((t) =>
+                t.startedAt.isBiggerOrEqualValue(from) &
+                t.startedAt.isSmallerThanValue(to))
+            ..orderBy([(t) => OrderingTerm.asc(t.startedAt)]))
+          .get();
+
+  Future<List<SessionRow>> allSessions() => select(sessions).get();
+}
+
+@DriftAccessor(tables: [Breaks])
+class BreakDao extends DatabaseAccessor<AgentDatabase> with _$BreakDaoMixin {
+  BreakDao(super.db);
+
+  Future<int> start({
+    required String day,
+    required int piece,
+    required DateTime at,
+  }) =>
+      into(breaks).insert(
+        BreaksCompanion.insert(day: day, piece: piece, startedAt: at),
+      );
+
+  Future<void> end(int id, DateTime at) =>
+      (update(breaks)..where((t) => t.id.equals(id)))
+          .write(BreaksCompanion(endedAt: Value(at)));
+
+  Future<BreakRow?> openBreak() => (select(breaks)
+        ..where((t) => t.endedAt.isNull())
+        ..orderBy([(t) => OrderingTerm.desc(t.startedAt)])
+        ..limit(1))
+      .getSingleOrNull();
+
+  Future<List<BreakRow>> forDay(String day) => (select(breaks)
+        ..where((t) => t.day.equals(day))
+        ..orderBy([(t) => OrderingTerm.asc(t.startedAt)]))
+      .get();
+}
+
+@DriftAccessor(tables: [FileVersions])
+class FileDao extends DatabaseAccessor<AgentDatabase> with _$FileDaoMixin {
+  FileDao(super.db);
+
+  Future<void> upsert({
+    required String projectId,
+    required String path,
+    required String fileId,
+    required int version,
+    required DateTime at,
+  }) =>
+      into(fileVersions).insertOnConflictUpdate(
+        FileVersionsCompanion.insert(
+          projectId: projectId,
+          path: path,
+          fileId: fileId,
+          version: version,
+          syncedAt: at,
+        ),
+      );
+
+  Future<List<FileVersionRow>> forProject(String projectId) =>
+      (select(fileVersions)..where((t) => t.projectId.equals(projectId))).get();
+}
+
+@DriftAccessor(tables: [Uploads])
+class UploadDao extends DatabaseAccessor<AgentDatabase> with _$UploadDaoMixin {
+  UploadDao(super.db);
+
+  Future<void> enqueue(UploadsCompanion u) =>
+      into(uploads).insert(u, mode: InsertMode.insertOrIgnore);
+
+  Future<List<UploadRow>> pending() => (select(uploads)
+        ..where((t) => t.state.isIn(['queued', 'uploading', 'uploaded']))
+        ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+      .get();
+
+  Future<UploadRow?> byClientId(String clientId) => (select(uploads)
+        ..where((t) => t.clientId.equals(clientId)))
+      .getSingleOrNull();
+
+  Future<void> patch(String clientId, UploadsCompanion c) =>
+      (update(uploads)..where((t) => t.clientId.equals(clientId))).write(c);
+}
+
+@DriftAccessor(tables: [DailyReports, Sessions])
+class ReportDao extends DatabaseAccessor<AgentDatabase> with _$ReportDaoMixin {
+  ReportDao(super.db);
+
+  Future<void> save({
+    required String date,
+    required String workerId,
+    required String json,
+    required bool submitted,
+  }) =>
+      into(dailyReports).insertOnConflictUpdate(
+        DailyReportsCompanion.insert(
+          date: date,
+          workerId: workerId,
+          json: json,
+          submitted: Value(submitted),
+        ),
+      );
+
+  Future<Set<String>> submittedDates() async {
+    final rows = await (select(dailyReports)
+          ..where((t) => t.submitted.equals(true)))
+        .get();
+    return rows.map((r) => r.date).toSet();
+  }
+
+  /// Earliest day (yyyy-MM-dd) that still owes a report: a day before [today]
+  /// with sessions, or today if one of today's sessions ended unclean.
+  Future<String?> pendingDate(String today) async {
+    final all = await select(sessions).get();
+    final submitted = await submittedDates();
+    final fmt = DateFormat('yyyy-MM-dd');
+    final owed = <String>{};
+    for (final s in all) {
+      final d = fmt.format(s.startedAt);
+      if (submitted.contains(d)) continue;
+      if (d.compareTo(today) < 0 || s.status == 'unclean') owed.add(d);
+    }
+    if (owed.isEmpty) return null;
+    return (owed.toList()..sort()).first;
   }
 }
 

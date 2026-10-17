@@ -45,6 +45,57 @@ class SessionDaoManager {
       $$HeartbeatsTableTableManager(_db.attachedDatabase, _db.heartbeats);
 }
 
+mixin _$BreakDaoMixin on DatabaseAccessor<AgentDatabase> {
+  $BreaksTable get breaks => attachedDatabase.breaks;
+  BreakDaoManager get managers => BreakDaoManager(this);
+}
+
+class BreakDaoManager {
+  final _$BreakDaoMixin _db;
+  BreakDaoManager(this._db);
+  $$BreaksTableTableManager get breaks =>
+      $$BreaksTableTableManager(_db.attachedDatabase, _db.breaks);
+}
+
+mixin _$FileDaoMixin on DatabaseAccessor<AgentDatabase> {
+  $FileVersionsTable get fileVersions => attachedDatabase.fileVersions;
+  FileDaoManager get managers => FileDaoManager(this);
+}
+
+class FileDaoManager {
+  final _$FileDaoMixin _db;
+  FileDaoManager(this._db);
+  $$FileVersionsTableTableManager get fileVersions =>
+      $$FileVersionsTableTableManager(_db.attachedDatabase, _db.fileVersions);
+}
+
+mixin _$UploadDaoMixin on DatabaseAccessor<AgentDatabase> {
+  $UploadsTable get uploads => attachedDatabase.uploads;
+  UploadDaoManager get managers => UploadDaoManager(this);
+}
+
+class UploadDaoManager {
+  final _$UploadDaoMixin _db;
+  UploadDaoManager(this._db);
+  $$UploadsTableTableManager get uploads =>
+      $$UploadsTableTableManager(_db.attachedDatabase, _db.uploads);
+}
+
+mixin _$ReportDaoMixin on DatabaseAccessor<AgentDatabase> {
+  $DailyReportsTable get dailyReports => attachedDatabase.dailyReports;
+  $SessionsTable get sessions => attachedDatabase.sessions;
+  ReportDaoManager get managers => ReportDaoManager(this);
+}
+
+class ReportDaoManager {
+  final _$ReportDaoMixin _db;
+  ReportDaoManager(this._db);
+  $$DailyReportsTableTableManager get dailyReports =>
+      $$DailyReportsTableTableManager(_db.attachedDatabase, _db.dailyReports);
+  $$SessionsTableTableManager get sessions =>
+      $$SessionsTableTableManager(_db.attachedDatabase, _db.sessions);
+}
+
 mixin _$OutboxDaoMixin on DatabaseAccessor<AgentDatabase> {
   $OutboxTable get outbox => attachedDatabase.outbox;
   OutboxDaoManager get managers => OutboxDaoManager(this);

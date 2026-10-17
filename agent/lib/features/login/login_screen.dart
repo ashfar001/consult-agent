@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/flow.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../common/lock_scaffold.dart';
@@ -129,13 +130,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             )
                           : const Text('Sign in'),
                     ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: auth.busy
+                          ? null
+                          : ref.read(flowCoordinatorProvider).dismissPrompt,
+                      child: const Text('Not now'),
+                    ),
                     if (config.mockApi) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       Text(
                         'Demo mode: EMP001 / 1234',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyMedium
                             ?.copyWith(color: AppColors.muted),
+                      ),
+                      TextButton(
+                        onPressed: ref.read(flowCoordinatorProvider).exitApp,
+                        child: const Text('Exit demo (Ctrl+Shift+F12)'),
                       ),
                     ],
                   ],

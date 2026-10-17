@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../config/app_config.dart';
 import '../data/api/api_client.dart';
@@ -9,8 +10,17 @@ import '../data/api/mock_api_client.dart';
 import '../data/db/database.dart';
 import '../services/auth_service.dart';
 import '../services/device_info.dart';
-import '../services/lock_service.dart';
+import '../services/file_watcher.dart';
+import '../services/folder_manager.dart';
+import '../services/recovery_service.dart';
+import '../services/uploader.dart';
+import '../features/login/auth_controller.dart';
+import '../services/window_service.dart';
 import '../services/secure_store.dart';
+import '../services/sync_worker.dart';
+import '../services/win32/active_app_monitor.dart';
+import '../services/win32/idle_monitor.dart';
+import '../services/win32/process_lister.dart';
 
 // Roots overridden in bootstrap (and tests).
 
@@ -26,8 +36,8 @@ final deviceInfoProvider = Provider<DeviceInfo>(
   (ref) => throw UnimplementedError('deviceInfoProvider must be overridden'),
 );
 
-final lockServiceProvider = Provider<LockService>(
-  (ref) => throw UnimplementedError('lockServiceProvider must be overridden'),
+final windowServiceProvider = Provider<WindowService>(
+  (ref) => throw UnimplementedError('windowServiceProvider must be overridden'),
 );
 
 /// Wall clock, injectable for tests.
@@ -60,7 +70,77 @@ final authServiceProvider = Provider<AuthService>(
   ),
 );
 
-/// Whether yesterday's report is still owed. Implemented in phase 4.
+/// Whether an earlier day (or an unclean session) still owes a report.
 final pendingReportProvider = Provider<Future<bool> Function()>(
-  (ref) => () async => false,
+  (ref) => () async {
+    final today = DateFormat('yyyy-MM-dd').format(ref.read(clockProvider)());
+    return await ref.read(dbProvider).reportDao.pendingDate(today) != null;
+  },
 );
+
+// Tracking services.
+
+final idleMonitorProvider = Provider<IdleMonitor>((ref) => createIdleMonitor());
+
+final activeAppMonitorProvider = Provider<ActiveAppMonitor>(
+  (ref) => createActiveAppMonitor(),
+);
+
+final processListerProvider = Provider<ProcessLister>(
+  (ref) => createProcessLister(),
+);
+
+/// Set false in tests that drive `tick()` by hand.
+final tickerEnabledProvider = Provider<bool>((ref) => true);
+
+final syncWorkerProvider = Provider<SyncWorker>((ref) {
+  final worker = SyncWorker(
+    db: ref.watch(dbProvider),
+    api: ref.watch(apiClientProvider),
+    clock: ref.watch(clockProvider),
+  );
+  ref.onDispose(worker.dispose);
+  return worker;
+});
+
+// Files.
+
+final folderManagerProvider = Provider<FolderManager>((ref) {
+  return FolderManager(
+    config: ref.watch(configProvider),
+    db: ref.watch(dbProvider),
+    api: ref.watch(apiClientProvider),
+    currentWorkerName: ref.watch(
+      authControllerProvider.select((s) => s.worker?.name),
+    ),
+  );
+});
+
+final fileWatcherProvider = Provider<FileWatcher>((ref) {
+  final w = FileWatcher(db: ref.watch(dbProvider));
+  ref.onDispose(w.dispose);
+  return w;
+});
+
+final uploaderProvider = Provider<Uploader>((ref) {
+  final u = Uploader(
+    db: ref.watch(dbProvider),
+    api: ref.watch(apiClientProvider),
+    clock: ref.watch(clockProvider),
+    maxFileBytes: ref.watch(configProvider).maxUploadFileBytes,
+  );
+  ref.onDispose(u.dispose);
+  return u;
+});
+
+final recoveryServiceProvider = Provider<RecoveryService>(
+  (ref) => RecoveryService(
+    db: ref.watch(dbProvider),
+    clock: ref.watch(clockProvider),
+  ),
+);
+
+/// True while the sync worker can reach the server.
+final syncOnlineProvider = StreamProvider<bool>((ref) {
+  return ref.watch(syncWorkerProvider).onlineChanges;
+});
