@@ -25,11 +25,12 @@ Mock mode login: **EMP001 / 1234**. The mock simulates latency and roughly 15% n
 The PC is never locked. The agent runs hidden and shows a window only when needed:
 
 1. A CAD app starts (`acad.exe`, `Revit.exe`, `SketchUp.exe`) with no session running → a **project prompt** asks for sign-in, project and task. Choosing Start begins the timer, syncs the project folder and opens it. Excel and K-SMART in a browser are tracked but never trigger the prompt. *Not now* hides it; it returns after 5 minutes while CAD is still open.
-2. A small always-on-top **timer bar** shows project, task, today's active time and hours left. Buttons: lunch break, upload, end work.
-3. **Lunch break:** 60 minutes a day, in up to 2 pieces, any time. The timer pauses and break time is never counted as work.
-4. At **17:00** the session stops and asks whether to continue as **overtime**. Overtime is recorded separately and never uses up project hours.
-5. **End work** collects the day's report (what you did, task statuses, notes) and uploads every changed file as a new version (the daily backup). A summary follows.
-6. If the agent was killed or the PC shut down mid-session, the session is closed at its last heartbeat and the report must be filed before the next session.
+2. A small always-on-top **timer bar** shows project, task, today's active time and hours left. Buttons: lunch break, upload, end work. When the cursor stays away for 3 seconds it slides up to a thin coloured strip at the top edge (green active, amber idle, grey offline); touch the strip with the cursor to bring it back.
+3. **Lunch break:** 60 minutes a day, in up to 2 pieces, any time, always after a "Start your lunch break?" confirmation. The timer pauses and break time is never counted as work.
+4. At **17:00** the session stops and asks whether to continue as **overtime**. Overtime is recorded separately and is never added to project time, locally or on the server (see the contract note).
+5. **Upload** lists every file in the project folder grouped by subfolder; changed files are ticked and the file picker opens in that folder.
+6. **End work** collects the day's report (what you did, task statuses, notes) and uploads every changed file as a new version (the daily backup). A summary follows.
+7. If the agent was killed or the PC shut down mid-session, the session is closed at its last heartbeat and the report must be filed before the next session.
 
 All time is written to SQLite first and synced when the network allows.
 
@@ -51,7 +52,11 @@ The build from CI runs in mock mode (`MOCK_API=true`): sign in with **EMP001 / 1
 
 ## Contract note
 
-The API contract is unchanged. Breaks, overtime and the work-day end are sent as extra `type` values on `POST /agent/events`; the overtime flag itself is kept locally.
+The API contract is unchanged. Breaks, overtime start, the work-day end and admin exits are sent as extra `type` values on `POST /agent/events`.
+
+**Overtime on the wire.** The contract has no overtime field, so overtime heartbeats are sent with `active_secs: 0` and `idle_secs: 0`, and their seconds go in `apps` under keys prefixed `overtime:` (e.g. `overtime:AutoCAD: 300`). Project hours and daily active time on the server therefore never include overtime; the manager sees it in the app breakdown. A real `kind` field on `sessions/start` would be cleaner and is a one-line change in `SyncWorker` once the backend supports it.
+
+**Browsers.** Chrome, Edge, Firefox, Brave, Opera and Internet Explorer are tracked by name in `apps` (a K-SMART window title still counts as K-SMART), so the manager can see when someone is on Chrome. Page titles and URLs are not recorded.
 
 ## Configuration
 

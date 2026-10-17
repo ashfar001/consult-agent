@@ -17,7 +17,6 @@ class TimerBarScreen extends ConsumerWidget {
     final s = ref.watch(sessionManagerProvider);
     final online = ref.watch(syncOnlineProvider).value ?? true;
     final flow = ref.read(flowCoordinatorProvider);
-    final manager = ref.read(sessionManagerProvider.notifier);
     final usage = s.usage;
     final project = s.project;
 
@@ -51,98 +50,102 @@ class TimerBarScreen extends ConsumerWidget {
 
     return Material(
       color: Colors.white,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.primary, width: 1.5),
-        ),
-        padding: const EdgeInsets.only(left: 10, right: 2),
-        child: Row(
-          children: [
-            Expanded(
-              child: DragToMoveArea(
-                child: Row(
-                  children: [
-                    Tooltip(
-                      message: dotLabel,
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: dot,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        children: [
+          // The top band is all that shows when the bar tucks away; its
+          // colour tells active / idle / offline at a glance.
+          Container(height: 6, color: dot),
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: AppColors.primary, width: 1.5),
+                  right: BorderSide(color: AppColors.primary, width: 1.5),
+                  bottom: BorderSide(color: AppColors.primary, width: 1.5),
+                ),
+              ),
+              padding: const EdgeInsets.only(left: 10, right: 2),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: DragToMoveArea(
+                      child: Row(
                         children: [
-                          Text(
-                            '${project?.code ?? ''} · ${s.task?.title ?? ''}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
+                          Tooltip(
+                            message: dotLabel,
+                            child: Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: dot,
+                                shape: BoxShape.circle,
+                              ),
                             ),
                           ),
-                          Text.rich(
-                            TextSpan(
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                TextSpan(
-                                  text: 'Today ${formatHm(s.todayActiveSecs)}',
-                                ),
-                                const TextSpan(text: '  ·  '),
-                                TextSpan(
-                                  text: hoursText,
-                                  style: TextStyle(
-                                    color: hoursColor,
+                                Text(
+                                  '${project?.code ?? ''} · ${s.task?.title ?? ''}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 13,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
+                                Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text:
+                                            'Today ${formatHm(s.todayActiveSecs)}',
+                                      ),
+                                      const TextSpan(text: '  ·  '),
+                                      TextSpan(
+                                        text: hoursText,
+                                        style: TextStyle(
+                                          color: hoursColor,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
                               ],
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  _BarButton(
+                    icon: Icons.free_breakfast_outlined,
+                    tooltip: 'Lunch break',
+                    onPressed: flow.askBreak,
+                  ),
+                  _BarButton(
+                    icon: Icons.cloud_upload_outlined,
+                    tooltip: 'Upload files',
+                    onPressed: flow.openUpload,
+                  ),
+                  _BarButton(
+                    icon: Icons.stop_circle_outlined,
+                    tooltip: 'End work',
+                    color: AppColors.danger,
+                    onPressed: flow.openEndWork,
+                  ),
+                ],
               ),
             ),
-            _BarButton(
-              icon: Icons.free_breakfast_outlined,
-              tooltip: 'Lunch break',
-              onPressed: () async {
-                final started = await manager.startBreak();
-                if (!started && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('No break time left today'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
-              },
-            ),
-            _BarButton(
-              icon: Icons.cloud_upload_outlined,
-              tooltip: 'Upload files',
-              onPressed: flow.openUpload,
-            ),
-            _BarButton(
-              icon: Icons.stop_circle_outlined,
-              tooltip: 'End work',
-              color: AppColors.danger,
-              onPressed: flow.openEndWork,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

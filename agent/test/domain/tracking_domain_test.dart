@@ -20,8 +20,15 @@ void main() {
     test('K-SMART only in a browser, any case', () {
       expect(classifyApp('chrome.exe', 'Home - k-smart portal'), 'K-SMART');
       expect(classifyApp('msedge.exe', 'K-SMART | Permits'), 'K-SMART');
-      expect(classifyApp('chrome.exe', 'YouTube'), 'Other:chrome.exe');
+      expect(classifyApp('chrome.exe', 'YouTube'), 'Chrome');
       expect(classifyApp('notepad.exe', 'K-SMART notes'), 'Other:notepad.exe');
+    });
+
+    test('browsers are tracked by name so the manager sees Chrome use', () {
+      expect(classifyApp('chrome.exe', 'Gmail'), 'Chrome');
+      expect(classifyApp('CHROME.EXE', ''), 'Chrome');
+      expect(classifyApp('msedge.exe', 'News'), 'Edge');
+      expect(classifyApp('firefox.exe', 'Docs'), 'Firefox');
     });
 
     test('unknown process keeps its exe name', () {

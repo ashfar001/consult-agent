@@ -1,10 +1,12 @@
-const _browsers = {
-  'chrome.exe',
-  'msedge.exe',
-  'firefox.exe',
-  'brave.exe',
-  'opera.exe',
-  'iexplore.exe',
+/// Browsers tracked by name, so the manager can see when someone is on
+/// Chrome. A K-SMART window title still wins (see [classifyApp]).
+const _browserNames = {
+  'chrome.exe': 'Chrome',
+  'msedge.exe': 'Edge',
+  'firefox.exe': 'Firefox',
+  'brave.exe': 'Brave',
+  'opera.exe': 'Opera',
+  'iexplore.exe': 'Internet Explorer',
 };
 
 /// Executables that raise the project prompt when started.
@@ -23,9 +25,9 @@ String classifyApp(String exeName, String windowTitle) {
     case 'excel.exe':
       return 'Excel';
   }
-  if (_browsers.contains(exe) &&
-      windowTitle.toLowerCase().contains('k-smart')) {
-    return 'K-SMART';
+  final browser = _browserNames[exe];
+  if (browser != null) {
+    return windowTitle.toLowerCase().contains('k-smart') ? 'K-SMART' : browser;
   }
   return exe.isEmpty ? 'Other' : 'Other:$exeName';
 }

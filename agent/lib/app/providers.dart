@@ -20,6 +20,7 @@ import '../services/window_service.dart';
 import '../services/secure_store.dart';
 import '../services/sync_worker.dart';
 import '../services/win32/active_app_monitor.dart';
+import '../services/win32/cursor_source.dart';
 import '../services/win32/idle_monitor.dart';
 import '../services/win32/process_lister.dart';
 
@@ -157,3 +158,7 @@ final adminGateProvider = Provider<AdminGate>((ref) {
     demoPassword: cfg.mockApi && cfg.adminExitHash.isEmpty ? 'admin1234' : null,
   );
 });
+
+final cursorSourceProvider = Provider<CursorSource>(
+  (ref) => createCursorSource(),
+);

@@ -74,7 +74,11 @@ class OpeningController extends Notifier<OpeningState> {
       await ref
           .read(fileWatcherProvider)
           .start(selection.project.id, result.folder);
-      await folders.open(selection.project, result.folder);
+      await folders.open(
+        selection.project,
+        result.folder,
+        task: selection.task,
+      );
       state = OpeningState(
         phase: OpeningPhase.done,
         done: state.total,

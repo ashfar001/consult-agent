@@ -16,6 +16,9 @@ abstract final class OutboxKind {
   static const dailyReport = 'daily_report';
 }
 
+/// Prefix on `apps` keys for overtime seconds (see [SyncWorker]).
+const overtimeAppPrefix = 'overtime:';
+
 /// Server's view of a worker's hours on a project, after a heartbeat batch.
 typedef SyncAck = ({String projectId, int usedSecs});
 
@@ -152,18 +155,7 @@ class SyncWorker {
       // One request per session so the ack maps to a single project.
       final first = pending.first.session;
       final batch = pending.where((e) => e.session.localId == first.localId);
-      final beats = [
-        for (final e in batch)
-          Heartbeat(
-            clientId: e.hb.clientId,
-            sessionId: first.serverId!,
-            from: e.hb.fromTime,
-            to: e.hb.toTime,
-            activeSecs: e.hb.activeSecs,
-            idleSecs: e.hb.idleSecs,
-            apps: asIntMap(jsonDecode(e.hb.appsJson)),
-          ),
-      ];
+      final beats = [for (final e in batch) _toWire(e.hb, e.session)];
       final HeartbeatAck ack;
       try {
         ack = await api.sendHeartbeats(beats);
@@ -180,6 +172,29 @@ class SyncWorker {
         _acks.add((projectId: first.projectId, usedSecs: ack.myUsedSeconds));
       }
     }
+  }
+
+  /// Overtime must never reach the server as project time, and the contract
+  /// has no field for it, so overtime slices go out with zero active/idle
+  /// seconds and their time under `overtime:<app>` keys in `apps`. Normal
+  /// slices are sent as recorded.
+  static Heartbeat _toWire(HeartbeatRow hb, SessionRow session) {
+    final apps = asIntMap(jsonDecode(hb.appsJson));
+    final overtime = session.kind == 'overtime';
+    return Heartbeat(
+      clientId: hb.clientId,
+      sessionId: session.serverId!,
+      from: hb.fromTime,
+      to: hb.toTime,
+      activeSecs: overtime ? 0 : hb.activeSecs,
+      idleSecs: overtime ? 0 : hb.idleSecs,
+      apps: overtime
+          ? {
+              for (final e in apps.entries)
+                '$overtimeAppPrefix${e.key}': e.value,
+            }
+          : apps,
+    );
   }
 
   Future<void> _sendOutbox() async {

@@ -29,6 +29,51 @@ String sanitizeName(String name) {
   return cleaned.isEmpty ? 'Project' : cleaned;
 }
 
+/// Picks the template subfolder that matches a task title, or null.
+///
+/// "Structural column layout" → 03_Structural, "K-SMART permit drawings" →
+/// 04_KSMART. More specific topics are checked before the generic
+/// "drawings" so a structural drawing opens the structural folder.
+String? subfolderForTask(String taskTitle, Iterable<String> subfolders) {
+  final title = taskTitle.toLowerCase();
+  const rules = <(String, List<String>)>[
+    ('ksmart', ['k-smart', 'ksmart', 'permit']),
+    (
+      'structural',
+      ['structur', 'column', 'beam', 'footing', 'foundation', 'slab'],
+    ),
+    ('survey', ['survey', 'site visit', 'levels']),
+    ('exports', ['export', 'pdf', 'plot', 'print']),
+    ('client', ['client', 'letter', 'agreement']),
+    (
+      'drawings',
+      [
+        'drawing',
+        'plan',
+        'elevation',
+        'section',
+        'layout',
+        'revit',
+        'model',
+        'cad',
+      ],
+    ),
+  ];
+  for (final (key, words) in rules) {
+    if (!words.any(title.contains)) continue;
+    for (final folder in subfolders) {
+      if (folder
+          .toLowerCase()
+          .replaceAll('_', '')
+          .replaceAll('-', '')
+          .contains(key)) {
+        return folder;
+      }
+    }
+  }
+  return null;
+}
+
 /// Progress of a folder sync.
 typedef SyncProgress = void Function(int done, int total, String path);
 
@@ -191,14 +236,30 @@ class FolderManager {
     await Process.run('attrib', ['-R', path]);
   }
 
-  /// Opens the main file if set, else the folder, in Explorer.
-  Future<void> open(Project project, String folder) async {
+  /// The folder to open for [task]: its matching subfolder if there is one.
+  String folderForTask(Project project, ProjectTask task, String folder) {
+    final template = project.folderTemplate.isEmpty
+        ? defaultTemplate
+        : project.folderTemplate;
+    final sub = subfolderForTask(task.title, template);
+    if (sub != null && Directory(p.join(folder, sub)).existsSync()) {
+      return p.join(folder, sub);
+    }
+    return folder;
+  }
+
+  /// Opens the task's folder (else the main file, else the project folder)
+  /// in Explorer.
+  Future<void> open(Project project, String folder, {ProjectTask? task}) async {
     if (!Platform.isWindows) return;
+    final target = task == null ? folder : folderForTask(project, task, folder);
     final main = project.mainFile;
-    if (main != null && File(p.join(folder, main)).existsSync()) {
+    if (target == folder &&
+        main != null &&
+        File(p.join(folder, main)).existsSync()) {
       await Process.run('explorer.exe', [p.join(folder, main)]);
     } else {
-      await Process.run('explorer.exe', [folder]);
+      await Process.run('explorer.exe', [target]);
     }
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/admin/admin_exit_screen.dart';
+import '../features/break/break_confirm_screen.dart';
 import '../features/break/break_screen.dart';
 import '../features/break/overtime_screen.dart';
 import '../features/break/notice_screen.dart';
@@ -29,6 +30,7 @@ abstract final class Routes {
   static const summary = '/summary';
   static const pendingReport = '/pending-report';
   static const adminExit = '/admin-exit';
+  static const breakConfirm = '/break-confirm';
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -72,6 +74,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.opening, builder: (_, _) => const OpeningScreen()),
       GoRoute(path: Routes.bar, builder: (_, _) => const TimerBarScreen()),
       GoRoute(path: Routes.breakRoute, builder: (_, _) => const BreakScreen()),
+      GoRoute(
+        path: Routes.breakConfirm,
+        builder: (_, _) => const BreakConfirmScreen(),
+      ),
       GoRoute(path: Routes.overtime, builder: (_, _) => const OvertimeScreen()),
       GoRoute(path: Routes.notice, builder: (_, _) => const NoticeScreen()),
       GoRoute(path: Routes.upload, builder: (_, _) => const UploadDialog()),

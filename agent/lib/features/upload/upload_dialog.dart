@@ -50,8 +50,9 @@ class _UploadDialogState extends ConsumerState<UploadDialog> {
           children: [
             Text('Upload files', style: theme.textTheme.headlineMedium),
             Text(
-              '${session.project?.code ?? ''} · files you changed in this '
-              'project. Each upload becomes a new version.',
+              '${session.project?.code ?? ''} · every file in the project '
+              'folder. Changed files are ticked. Each upload becomes a new '
+              'version.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: AppColors.muted,
               ),
@@ -62,36 +63,33 @@ class _UploadDialogState extends ConsumerState<UploadDialog> {
                 child: s.items.isEmpty
                     ? Center(
                         child: Text(
-                          'No changed files yet. Use "Add files" to pick others.',
+                          'No files in this project folder yet. '
+                          'Use "Add files" to pick others.',
                           style: theme.textTheme.bodyLarge,
                         ),
                       )
                     : ListView(
                         children: [
-                          for (final i in s.items)
-                            ListTile(
-                              leading: Checkbox(
-                                value: i.selected,
-                                onChanged: s.busy
-                                    ? null
-                                    : (v) => c.toggle(i.path, v ?? false),
+                          for (final g in _groups(s.items))
+                            ExpansionTile(
+                              key: PageStorageKey('folder-${g.name}'),
+                              initiallyExpanded: g.changed > 0,
+                              leading: const Icon(Icons.folder_outlined),
+                              title: Text(g.name),
+                              subtitle: Text(
+                                g.changed > 0
+                                    ? '${g.items.length} files · '
+                                          '${g.changed} changed'
+                                    : '${g.items.length} files',
                               ),
-                              title: Text(i.remotePath),
-                              subtitle: i.state == 'uploading'
-                                  ? LinearProgressIndicator(value: i.progress)
-                                  : Text(_size(i.size)),
-                              trailing: switch (i.state) {
-                                'confirmed' => const Icon(
-                                  Icons.check_circle,
-                                  color: AppColors.ok,
-                                ),
-                                'failed' => const Icon(
-                                  Icons.error,
-                                  color: AppColors.danger,
-                                ),
-                                'queued' => const Text('Queued'),
-                                _ => null,
-                              },
+                              children: [
+                                for (final i in g.items)
+                                  _FileTile(
+                                    item: i,
+                                    busy: s.busy,
+                                    onChanged: (v) => c.toggle(i.path, v),
+                                  ),
+                              ],
                             ),
                         ],
                       ),
@@ -122,6 +120,12 @@ class _UploadDialogState extends ConsumerState<UploadDialog> {
                   icon: const Icon(Icons.add),
                   label: const Text('Add files'),
                 ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: s.busy ? null : c.openFolder,
+                  icon: const Icon(Icons.folder_open),
+                  label: const Text('Open folder'),
+                ),
                 const Spacer(),
                 TextButton(
                   onPressed: s.busy
@@ -140,6 +144,74 @@ class _UploadDialogState extends ConsumerState<UploadDialog> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _Group {
+  _Group(this.name) : items = [];
+
+  final String name;
+  final List<UploadItem> items;
+
+  int get changed => items.where((i) => i.changed).length;
+}
+
+/// Files grouped by top-level project subfolder; folders with changes first.
+List<_Group> _groups(List<UploadItem> items) {
+  final byName = <String, _Group>{};
+  for (final i in items) {
+    final parts = i.remotePath.split('/');
+    final name = parts.length > 1 ? parts.first : '(project root)';
+    byName.putIfAbsent(name, () => _Group(name)).items.add(i);
+  }
+  final groups = byName.values.toList();
+  for (final g in groups) {
+    g.items.sort((a, b) {
+      if (a.changed != b.changed) return a.changed ? -1 : 1;
+      return a.remotePath.compareTo(b.remotePath);
+    });
+  }
+  groups.sort((a, b) {
+    if ((a.changed > 0) != (b.changed > 0)) return a.changed > 0 ? -1 : 1;
+    return a.name.compareTo(b.name);
+  });
+  return groups;
+}
+
+class _FileTile extends StatelessWidget {
+  const _FileTile({
+    required this.item,
+    required this.busy,
+    required this.onChanged,
+  });
+
+  final UploadItem item;
+  final bool busy;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = item.remotePath.split('/').skip(1).join('/');
+    return ListTile(
+      dense: true,
+      leading: Checkbox(
+        value: item.selected,
+        onChanged: busy ? null : (v) => onChanged(v ?? false),
+      ),
+      title: Text(name.isEmpty ? item.remotePath : name),
+      subtitle: item.state == 'uploading'
+          ? LinearProgressIndicator(value: item.progress)
+          : Text(
+              '${_size(item.size)}${item.changed ? ' · changed' : ''}',
+              style: TextStyle(color: item.changed ? AppColors.warning : null),
+            ),
+      trailing: switch (item.state) {
+        'confirmed' => const Icon(Icons.check_circle, color: AppColors.ok),
+        'failed' => const Icon(Icons.error, color: AppColors.danger),
+        'queued' => const Text('Queued'),
+        _ => null,
+      },
     );
   }
 }

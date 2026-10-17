@@ -19,7 +19,10 @@ class FileWatcher {
   final _changed = <String>{};
   final _controller = StreamController<Set<String>>.broadcast();
   StreamSubscription<FileSystemEvent>? _sub;
-  late String _folder;
+  String _folder = '';
+
+  /// The project folder being watched ('' before [start]).
+  String get folder => _folder;
 
   Stream<Set<String>> get changes => _controller.stream;
 

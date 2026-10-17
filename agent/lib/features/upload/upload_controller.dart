@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import '../../domain/file_rules.dart';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -14,6 +16,7 @@ class UploadItem {
     required this.remotePath,
     required this.size,
     this.selected = true,
+    this.changed = false,
     this.state = 'ready',
     this.progress = 0,
   });
@@ -22,6 +25,9 @@ class UploadItem {
   final String remotePath;
   final int size;
   final bool selected;
+
+  /// Created or edited since it was last synced.
+  final bool changed;
 
   /// ready | queued | uploading | confirmed | failed
   final String state;
@@ -33,6 +39,7 @@ class UploadItem {
         remotePath: remotePath,
         size: size,
         selected: selected ?? this.selected,
+        changed: changed,
         state: state ?? this.state,
         progress: progress ?? this.progress,
       );
@@ -73,19 +80,44 @@ class UploadController extends Notifier<UploadState> {
   @override
   UploadState build() => const UploadState();
 
-  /// Lists the files the watcher saw change in this project.
+  static const _maxListed = 2000;
+
+  /// The project folder being worked in ('' when none).
+  String get folder => ref.read(fileWatcherProvider).folder;
+
+  /// Lists every file in the project folder. Files changed since the last
+  /// sync come ticked; the rest can be ticked by hand.
   void load() {
     final watcher = ref.read(fileWatcherProvider);
-    state = UploadState(
-      items: [
-        for (final path in watcher.changedFiles)
+    final changed = watcher.changedFiles.toSet();
+    final items = <UploadItem>[];
+    final dir = Directory(watcher.folder);
+    if (watcher.folder.isNotEmpty && dir.existsSync()) {
+      for (final e in dir.listSync(recursive: true, followLinks: false)) {
+        if (e is! File || isIgnoredFile(e.path) || e.path.endsWith('.part')) {
+          continue;
+        }
+        items.add(
           UploadItem(
-            path: path,
-            remotePath: watcher.relative(path),
-            size: File(path).existsSync() ? File(path).lengthSync() : 0,
+            path: e.path,
+            remotePath: watcher.relative(e.path),
+            size: e.lengthSync(),
+            selected: changed.contains(e.path),
+            changed: changed.contains(e.path),
           ),
-      ],
-    );
+        );
+        if (items.length >= _maxListed) break;
+      }
+    }
+    items.sort((a, b) => a.remotePath.compareTo(b.remotePath));
+    state = UploadState(items: items);
+  }
+
+  /// Opens the project folder in Explorer.
+  Future<void> openFolder() async {
+    final f = folder;
+    if (f.isEmpty || !Platform.isWindows) return;
+    await Process.run('explorer.exe', [f]);
   }
 
   void toggle(String path, bool value) => state = state.copyWith(
@@ -102,12 +134,20 @@ class UploadController extends Notifier<UploadState> {
   /// Adds files outside the change list. Files outside the project folder
   /// are filed under 05_Exports.
   Future<void> addFiles() async {
-    final picked = await FilePicker.pickFiles();
+    final start = folder;
+    final picked = await FilePicker.pickFiles(
+      initialDirectory: start.isEmpty ? null : start,
+    );
     final watcher = ref.read(fileWatcherProvider);
     final items = [...state.items];
     for (final f in picked) {
       final path = f.path;
-      if (path == null || items.any((i) => i.path == path)) continue;
+      if (path == null) continue;
+      final existing = items.indexWhere((i) => i.path == path);
+      if (existing >= 0) {
+        items[existing] = items[existing].copyWith(selected: true);
+        continue;
+      }
       var remote = watcher.relative(path);
       if (remote.startsWith('..')) remote = '05_Exports/${p.basename(path)}';
       items.add(

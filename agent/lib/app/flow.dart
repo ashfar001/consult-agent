@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../domain/admin_gate.dart';
 import '../data/models/models.dart';
+import '../services/bar_hide_logic.dart';
 import '../services/launch_detector.dart';
 import '../services/logging.dart';
 import '../services/session_manager.dart';
@@ -96,9 +97,10 @@ class FlowCoordinator {
   }
 
   Future<void> _show(FlowScreen screen, String route) async {
+    _stopBarWatch();
     _screen = screen;
     _route = route;
-    _router.go(route);
+    // Resize first, so the new screen is laid out at its own size.
     await _window.setMode(switch (screen) {
       FlowScreen.idle => WindowMode.hidden,
       FlowScreen.prompt => WindowMode.prompt,
@@ -106,6 +108,35 @@ class FlowCoordinator {
       FlowScreen.small => WindowMode.small,
       FlowScreen.dialog => WindowMode.dialog,
     });
+    _router.go(route);
+    if (screen == FlowScreen.bar) await _startBarWatch();
+  }
+
+  // The timer bar tucks away to a strip when the cursor is elsewhere.
+  Timer? _barTimer;
+  final _hide = BarHideLogic();
+
+  Future<void> _startBarWatch() async {
+    final rect = await _window.barBounds();
+    if (rect == null) return;
+    _hide.reset(_ref.read(clockProvider)());
+    final cursor = _ref.read(cursorSourceProvider);
+    _barTimer = Timer.periodic(const Duration(milliseconds: 250), (_) async {
+      final at = cursor.position();
+      if (at == null) return;
+      final changed = _hide.update(
+        cursor: at,
+        bar: rect,
+        now: _ref.read(clockProvider)(),
+      );
+      if (changed) await _window.setBarCollapsed(_hide.collapsed);
+    });
+  }
+
+  void _stopBarWatch() {
+    _barTimer?.cancel();
+    _barTimer = null;
+    _hide.collapsed = false;
   }
 
   Future<void> openPrompt({String? message}) async {
@@ -124,6 +155,9 @@ class FlowCoordinator {
   Future<void> showBar() => _show(FlowScreen.bar, Routes.bar);
 
   Future<void> showIdle() => _show(FlowScreen.idle, Routes.idle);
+
+  /// Asks before starting a lunch break, so a stray click can't pause the clock.
+  Future<void> askBreak() => _show(FlowScreen.small, Routes.breakConfirm);
 
   Future<void> openUpload() => _show(FlowScreen.dialog, Routes.upload);
 
