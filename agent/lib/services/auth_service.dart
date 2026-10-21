@@ -12,6 +12,7 @@ class AuthService {
     required SecureStore secureStore,
     required KvDao kv,
     required this.deviceId,
+    required this.pcName,
   }) : _api = api,
        _secure = secureStore,
        _kv = kv;
@@ -20,11 +21,26 @@ class AuthService {
   final SecureStore _secure;
   final KvDao _kv;
   final String deviceId;
+  final String pcName;
 
   Future<Worker> login({
     required String employeeId,
     required String pin,
   }) async {
+    final status = await _api.registerDevice(
+      pcName: pcName,
+      deviceId: deviceId,
+    );
+    if (status == DeviceStatus.pending) {
+      throw const ApiException(
+        'This computer is waiting for administrator approval. Ask an admin to approve it in Devices, then try again.',
+      );
+    }
+    if (status == DeviceStatus.blocked) {
+      throw const ApiException(
+        'This computer is blocked. Ask an administrator for access.',
+      );
+    }
     final result = await _api.login(
       employeeId: employeeId.trim(),
       pin: pin,

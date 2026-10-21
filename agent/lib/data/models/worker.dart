@@ -41,7 +41,10 @@ class LoginResult {
   final Worker worker;
 }
 
-enum DeviceStatus { pending, approved }
+enum DeviceStatus { pending, approved, blocked }
 
-DeviceStatus deviceStatusFromString(String s) =>
-    s == 'approved' ? DeviceStatus.approved : DeviceStatus.pending;
+DeviceStatus deviceStatusFromString(String s) => s == 'approved'
+    ? DeviceStatus.approved
+    : s == 'blocked'
+    ? DeviceStatus.blocked
+    : DeviceStatus.pending;

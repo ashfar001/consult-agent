@@ -69,6 +69,7 @@ final authServiceProvider = Provider<AuthService>(
     secureStore: ref.watch(secureStoreProvider),
     kv: ref.watch(dbProvider).kvDao,
     deviceId: ref.watch(deviceInfoProvider).deviceId,
+    pcName: ref.watch(deviceInfoProvider).pcName,
   ),
 );
 
