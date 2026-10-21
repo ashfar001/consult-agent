@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       mock_api:
-        description: Build with MOCK_API=true
+        description: Build a demo agent with MOCK_API=true
         type: boolean
-        default: true
+        default: false
 
 jobs:
   build:
@@ -33,7 +33,7 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          MOCK="${{ github.event_name == 'workflow_dispatch' && inputs.mock_api || 'true' }}"
+          MOCK="${{ github.event_name == 'workflow_dispatch' && inputs.mock_api || 'false' }}"
           flutter build windows --release --dart-define=MOCK_API=$MOCK
 
       - uses: actions/upload-artifact@v4

@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import '../domain/hour_limits.dart';
 
 abstract final class AppColors {
-  static const primary = Color(0xFF1F4E79);
-  static const background = Color(0xFFF5F6F8);
+  static const primary = Color(0xFF272727);
+  static const background = Color(0xFFF8F9FA);
   static const surface = Colors.white;
   static const ok = Color(0xFF2E7D32);
   static const warning = Color(0xFFF59E0B);
   static const danger = Color(0xFFC62828);
-  static const muted = Color(0xFF6B7280);
+  static const muted = Color(0xFF66696F);
 
   static Color forUsage(UsageLevel level) => switch (level) {
     UsageLevel.normal => primary,
@@ -36,28 +36,31 @@ ThemeData buildTheme() {
     textTheme: text.copyWith(
       displaySmall: text.displaySmall?.copyWith(fontWeight: FontWeight.w600),
       headlineMedium: text.headlineMedium?.copyWith(
-        fontSize: 28,
+        fontSize: 27,
         fontWeight: FontWeight.w600,
       ),
       titleLarge: text.titleLarge?.copyWith(
-        fontSize: 22,
+        fontSize: 19,
         fontWeight: FontWeight.w600,
       ),
       titleMedium: text.titleMedium?.copyWith(fontSize: 18),
-      bodyLarge: text.bodyLarge?.copyWith(fontSize: 18),
+      bodyLarge: text.bodyLarge?.copyWith(fontSize: 16),
       bodyMedium: text.bodyMedium?.copyWith(fontSize: 16),
       labelLarge: text.labelLarge?.copyWith(fontSize: 16),
     ),
     inputDecorationTheme: const InputDecorationTheme(
-      border: OutlineInputBorder(),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(6)),
+      ),
       filled: true,
       fillColor: Colors.white,
-      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        minimumSize: const Size(160, 56),
-        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        minimumSize: const Size(160, 48),
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
       ),
     ),
     cardTheme: const CardThemeData(
@@ -65,8 +68,8 @@ ThemeData buildTheme() {
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12)),
-        side: BorderSide(color: Color(0xFFE2E5EA)),
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        side: BorderSide(color: Color(0xFFE9EAEC)),
       ),
     ),
   );

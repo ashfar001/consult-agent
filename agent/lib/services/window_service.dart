@@ -88,7 +88,7 @@ class DesktopWindowService implements WindowService {
         await _show(const Size(940, 760), alignment: Alignment.center);
       case WindowMode.bar:
         await _show(
-          const Size(400, 56),
+          const Size(400, 104),
           alignment: Alignment.topCenter,
           taskbar: false,
         );
@@ -144,7 +144,7 @@ class FakeWindowService implements WindowService {
   Future<void> setMode(WindowMode mode) async => modes.add(mode);
 
   @override
-  Future<Rect?> barBounds() async => const Rect.fromLTWH(500, 0, 400, 56);
+  Future<Rect?> barBounds() async => const Rect.fromLTWH(500, 0, 400, 104);
 
   @override
   Future<void> setBarCollapsed(bool collapsed) async =>

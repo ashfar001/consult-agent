@@ -37,9 +37,9 @@ class AppConfig {
   }) {
     final base = p.join(programDataDir, 'ConsultAgent');
     return AppConfig(
-      apiBaseUrl: 'https://api.example.com',
+      apiBaseUrl: 'https://www.app.squarem.in',
       mockApi: false,
-      companyName: 'Consultancy',
+      companyName: 'SQUAREM',
       idleThresholdSecs: 300,
       pollIntervalSecs: 5,
       heartbeatIntervalSecs: 60,

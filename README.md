@@ -48,7 +48,7 @@ Paste the printed `admin_exit_salt` and `admin_exit_hash` lines into `%ProgramDa
 
 ## Demo build
 
-The build from CI runs in mock mode (`MOCK_API=true`): sign in with **EMP001 / 1234**. In demo builds the prompt also appears when **Notepad** or **Paint** starts, and once at launch, so it can be tried on a PC without CAD. Exit with **Ctrl+Shift+F12** and the demo admin password **admin1234** (accepted only in mock builds with no hash configured).
+The automatic CI build on `main` uses the live API (`MOCK_API=false`). A manually dispatched demo build can select `mock_api=true`; then sign in with **EMP001 / 1234**. In demo builds the prompt also appears when **Notepad** or **Paint** starts, and once at launch, so it can be tried on a PC without CAD. Exit with **Ctrl+Shift+F12** and the demo admin password **admin1234** (accepted only in mock builds with no hash configured).
 
 ## Contract note
 

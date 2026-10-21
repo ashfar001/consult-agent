@@ -28,10 +28,34 @@ void main() {
     expect(c.heartbeatIntervalSecs, 60);
     expect(c.pollIntervalSecs, 5);
     expect(c.mockApi, isFalse);
+    expect(c.apiBaseUrl, 'https://www.app.squarem.in');
     expect(c.projectsRoot, r'D:\Projects');
     expect(c.fallbackProjectsRoot, p.join(tmp.path, 'user', 'Projects'));
     expect(c.dataDir, p.join(tmp.path, 'ConsultAgent', 'data'));
     expect(File(l.configPath).existsSync(), isTrue);
+  });
+
+  test('migrates only the old example URL and preserves custom settings', () {
+    final file = File(p.join(tmp.path, 'ConsultAgent', 'config.json'))
+      ..createSync(recursive: true)
+      ..writeAsStringSync(
+        jsonEncode({
+          'api_base_url': 'https://api.example.com',
+          'company_name': 'Custom Company',
+        }),
+      );
+    final migrated = loader().load();
+    expect(migrated.apiBaseUrl, 'https://www.app.squarem.in');
+    expect(migrated.companyName, 'Custom Company');
+    expect(
+      (jsonDecode(file.readAsStringSync()) as Map<String, dynamic>)['api_base_url'],
+      'https://www.app.squarem.in',
+    );
+
+    file.writeAsStringSync(
+      jsonEncode({'api_base_url': 'https://other.example'}),
+    );
+    expect(loader().load().apiBaseUrl, 'https://other.example');
   });
 
   test('file values override defaults; unknown/invalid types ignored', () {

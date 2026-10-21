@@ -50,12 +50,12 @@ class _ProjectSelectScreenState extends ConsumerState<ProjectSelectScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           TextButton(
-            style: TextButton.styleFrom(foregroundColor: Colors.white),
+            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
             onPressed: ref.read(flowCoordinatorProvider).dismissPrompt,
             child: const Text('Not now'),
           ),
           TextButton.icon(
-            style: TextButton.styleFrom(foregroundColor: Colors.white),
+            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
             onPressed: () =>
                 ref.read(authControllerProvider.notifier).signOut(),
             icon: const Icon(Icons.logout),
@@ -203,8 +203,8 @@ class _OfflineBanner extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Offline: showing your saved project list$when. '
-              'Your time is still recorded and will sync later.',
+              'Offline · Showing projects saved$when. '
+              'Your time saves here and syncs later.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),

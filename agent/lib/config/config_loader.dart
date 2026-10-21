@@ -54,6 +54,18 @@ class ConfigLoader {
       try {
         final decoded = jsonDecode(file.readAsStringSync());
         if (decoded is Map<String, dynamic>) {
+          // Older generated samples contained this non-working example URL.
+          // Migrate only that exact value; a custom deployment is intentional.
+          if (decoded['api_base_url'] == 'https://api.example.com') {
+            decoded['api_base_url'] = config.apiBaseUrl;
+            try {
+              file.writeAsStringSync(
+                const JsonEncoder.withIndent('  ').convert(decoded),
+              );
+            } on FileSystemException catch (e) {
+              warnings.add('Could not save updated API URL: ${e.message}');
+            }
+          }
           config = config.mergeJson(decoded);
         } else {
           warnings.add('config.json is not a JSON object; using defaults');

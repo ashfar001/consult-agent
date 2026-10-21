@@ -24,7 +24,9 @@ class TimerBarScreen extends ConsumerWidget {
     final String dotLabel;
     if (!online) {
       dot = AppColors.muted;
-      dotLabel = 'Offline: time is saved and will sync';
+      dotLabel = s.status == TrackStatus.idle
+          ? 'Idle · Offline · Saved locally'
+          : 'Offline · Saved locally · Waiting to sync';
     } else if (s.status == TrackStatus.idle) {
       dot = AppColors.warning;
       dotLabel = 'Idle: not counting';
@@ -36,12 +38,12 @@ class TimerBarScreen extends ConsumerWidget {
     String hoursText;
     Color hoursColor = AppColors.muted;
     if (s.overtime) {
-      hoursText = 'OVERTIME';
+      hoursText = 'Overtime · Project hours paused';
       hoursColor = AppColors.danger;
     } else if (usage == null) {
       hoursText = '';
     } else if (usage.level == UsageLevel.over) {
-      hoursText = 'Overrun +${formatHm(usage.overrunSecs)}';
+      hoursText = 'Overrun ${formatHm(usage.overrunSecs)}';
       hoursColor = AppColors.danger;
     } else {
       hoursText = '${formatHm(usage.remainingSecs)} left';
@@ -65,7 +67,7 @@ class TimerBarScreen extends ConsumerWidget {
                 ),
               ),
               padding: const EdgeInsets.only(left: 10, right: 2),
-              child: Row(
+              child: Column(
                 children: [
                   Expanded(
                     child: DragToMoveArea(
@@ -101,16 +103,16 @@ class TimerBarScreen extends ConsumerWidget {
                                   TextSpan(
                                     children: [
                                       TextSpan(
-                                        text:
-                                            'Today ${formatHm(s.todayActiveSecs)}',
-                                      ),
-                                      const TextSpan(text: '  ·  '),
-                                      TextSpan(
                                         text: hoursText,
                                         style: TextStyle(
                                           color: hoursColor,
                                           fontWeight: FontWeight.w700,
                                         ),
+                                      ),
+                                      const TextSpan(text: '  ·  '),
+                                      TextSpan(
+                                        text:
+                                            'Today ${formatHm(s.todayActiveSecs)}',
                                       ),
                                     ],
                                   ),
@@ -125,21 +127,38 @@ class TimerBarScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  _BarButton(
-                    icon: Icons.free_breakfast_outlined,
-                    tooltip: 'Lunch break',
-                    onPressed: flow.askBreak,
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      dotLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.muted,
+                      ),
+                    ),
                   ),
-                  _BarButton(
-                    icon: Icons.cloud_upload_outlined,
-                    tooltip: 'Upload files',
-                    onPressed: flow.openUpload,
-                  ),
-                  _BarButton(
-                    icon: Icons.stop_circle_outlined,
-                    tooltip: 'End work',
-                    color: AppColors.danger,
-                    onPressed: flow.openEndWork,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _BarButton(
+                        icon: Icons.free_breakfast_outlined,
+                        label: 'Break',
+                        onPressed: flow.askBreak,
+                      ),
+                      _BarButton(
+                        icon: Icons.cloud_upload_outlined,
+                        label: 'Upload',
+                        onPressed: flow.openUpload,
+                      ),
+                      _BarButton(
+                        icon: Icons.stop_circle_outlined,
+                        label: 'End work',
+                        color: AppColors.danger,
+                        onPressed: flow.openEndWork,
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -154,22 +173,23 @@ class TimerBarScreen extends ConsumerWidget {
 class _BarButton extends StatelessWidget {
   const _BarButton({
     required this.icon,
-    required this.tooltip,
+    required this.label,
     required this.onPressed,
     this.color,
   });
 
   final IconData icon;
-  final String tooltip;
+  final String label;
   final VoidCallback onPressed;
   final Color? color;
 
   @override
-  Widget build(BuildContext context) => IconButton(
-    icon: Icon(icon, color: color ?? AppColors.primary),
-    tooltip: tooltip,
-    iconSize: 24,
-    visualDensity: VisualDensity.compact,
+  Widget build(BuildContext context) => TextButton.icon(
     onPressed: onPressed,
+    icon: Icon(icon, size: 16, color: color ?? AppColors.primary),
+    label: Text(
+      label,
+      style: TextStyle(fontSize: 12, color: color ?? AppColors.primary),
+    ),
   );
 }

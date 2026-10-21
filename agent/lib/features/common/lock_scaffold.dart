@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../../app/providers.dart';
 import '../../app/theme.dart';
@@ -31,37 +32,53 @@ class LockScaffold extends ConsumerWidget {
     return Scaffold(
       body: Column(
         children: [
-          Container(
-            color: AppColors.primary,
-            padding: EdgeInsets.symmetric(
-              horizontal: compact ? 16 : 32,
-              vertical: compact ? 8 : 16,
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.apartment, color: Colors.white, size: 32),
-                const SizedBox(width: 12),
-                Text(
-                  config.companyName,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
+          DragToMoveArea(
+            child: Container(
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                border: Border(bottom: BorderSide(color: Color(0xFFE9EAEC))),
+              ),
+              padding: EdgeInsets.symmetric(
+                horizontal: compact ? 16 : 32,
+                vertical: compact ? 8 : 16,
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.crop_square_rounded,
+                    color: AppColors.primary,
+                    size: 28,
                   ),
-                ),
-                const Spacer(),
-                if (trailing != null) ...[trailing!, const SizedBox(width: 24)],
-                if (!compact) ...[
-                  const Icon(Icons.computer, color: Colors.white70, size: 20),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 12),
                   Text(
-                    device.pcName,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: Colors.white70,
+                    config.companyName,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: AppColors.primary,
                     ),
                   ),
-                  const SizedBox(width: 24),
+                  const Spacer(),
+                  if (trailing != null) ...[
+                    trailing!,
+                    const SizedBox(width: 24),
+                  ],
+                  if (!compact) ...[
+                    const Icon(
+                      Icons.computer,
+                      color: AppColors.muted,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      device.pcName,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: AppColors.muted,
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                  ],
+                  const _Clock(),
                 ],
-                const _Clock(),
-              ],
+              ),
             ),
           ),
           Expanded(child: child),
@@ -101,7 +118,7 @@ class _ClockState extends State<_Clock> {
   Widget build(BuildContext context) => Text(
     _fmt.format(_now),
     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-      color: Colors.white,
+      color: AppColors.muted,
       fontWeight: FontWeight.w600,
     ),
   );
