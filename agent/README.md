@@ -20,6 +20,10 @@ The app creates a full sample config at first launch. Existing generated configs
 
 Before a worker signs in, create their employee ID and PIN in the SQUAREM console, assign the worker to a project and task, then approve the new PC on **Devices** after its first connection. On the worker PC, sign in and select the task to start tracking. Offline time is saved locally and syncs when the connection returns.
 
+While work is running, the agent stays hidden so it does not cover CAD or other windows. Press **Ctrl+Shift+F11** to open the work controls (Break, Upload, End work); press it again or select Hide to close them. The controls also hide after three seconds with the pointer away. **Ctrl+Shift+F12** still opens the protected admin exit. Only one agent process can run per Windows login.
+
+After five minutes without keyboard or mouse input (`idle_threshold_secs: 300`, checked every five seconds), the agent records time as idle instead of active. Idle alone does not end the session; normal work stops at the configured `workday_end` (default 17:00), when overtime can be offered.
+
 ## Build and check
 
 Use Flutter 3.41.4 or a compatible newer SDK. On a Windows machine with Visual Studio Desktop development with C++ installed:

@@ -143,6 +143,11 @@ class TimerBarScreen extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       _BarButton(
+                        icon: Icons.keyboard_arrow_up_rounded,
+                        label: 'Hide',
+                        onPressed: flow.collapseBar,
+                      ),
+                      _BarButton(
                         icon: Icons.free_breakfast_outlined,
                         label: 'Break',
                         onPressed: flow.askBreak,

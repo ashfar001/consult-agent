@@ -3,14 +3,15 @@ import 'dart:io';
 
 import 'package:win32/win32.dart';
 
-/// Fires when Ctrl+Shift+F12 is pressed anywhere in Windows, even while the
-/// agent window is hidden. Polls key state, so it needs no native code and
+/// Fires when Ctrl+Shift plus [functionKey] is pressed anywhere in Windows,
+/// even while the agent window is hidden. Polls key state, so it needs no native code and
 /// does not swallow the keys.
 class HotkeyWatcher {
   HotkeyWatcher({
     this.pollInterval = const Duration(milliseconds: 150),
+    int functionKey = VK_F12,
     bool Function()? isPressed,
-  }) : _isPressed = isPressed ?? _comboPressed;
+  }) : _isPressed = isPressed ?? (() => _comboPressed(functionKey));
 
   final Duration pollInterval;
   final bool Function() _isPressed;
@@ -22,9 +23,9 @@ class HotkeyWatcher {
 
   static bool _down(int vk) => (GetAsyncKeyState(vk) & 0x8000) != 0;
 
-  static bool _comboPressed() {
+  static bool _comboPressed(int functionKey) {
     if (!Platform.isWindows) return false;
-    return _down(VK_CONTROL) && _down(VK_SHIFT) && _down(VK_F12);
+    return _down(VK_CONTROL) && _down(VK_SHIFT) && _down(functionKey);
   }
 
   void start() {

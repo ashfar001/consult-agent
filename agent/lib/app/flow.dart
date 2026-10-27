@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:win32/win32.dart' show VK_F11;
 
 import '../domain/admin_gate.dart';
 import '../data/models/models.dart';
@@ -29,6 +30,7 @@ class FlowCoordinator {
   final Ref _ref;
   FlowScreen _screen = FlowScreen.idle;
   String _route = Routes.idle;
+  bool _barVisible = false;
   ({FlowScreen screen, String route})? _beforeAdmin;
   DateTime? _dismissedAt;
 
@@ -50,6 +52,9 @@ class FlowCoordinator {
     final hotkey = HotkeyWatcher()..start();
     hotkey.pressed.listen((_) => openAdminExit());
     _ref.onDispose(hotkey.dispose);
+    final controlsHotkey = HotkeyWatcher(functionKey: VK_F11)..start();
+    controlsHotkey.pressed.listen((_) => toggleControls());
+    _ref.onDispose(controlsHotkey.dispose);
     // Demo builds show the prompt straight away so it can be tried anywhere.
     if (cfg.mockApi) unawaited(Future.microtask(openPrompt));
   }
@@ -98,21 +103,21 @@ class FlowCoordinator {
 
   Future<void> _show(FlowScreen screen, String route) async {
     _stopBarWatch();
+    _barVisible = false;
     _screen = screen;
     _route = route;
     // Resize first, so the new screen is laid out at its own size.
     await _window.setMode(switch (screen) {
       FlowScreen.idle => WindowMode.hidden,
       FlowScreen.prompt => WindowMode.prompt,
-      FlowScreen.bar => WindowMode.bar,
+      FlowScreen.bar => WindowMode.hidden,
       FlowScreen.small => WindowMode.small,
       FlowScreen.dialog => WindowMode.dialog,
     });
     _router.go(route);
-    if (screen == FlowScreen.bar) await _startBarWatch();
   }
 
-  // The timer bar tucks away to a strip when the cursor is elsewhere.
+  // Close the work controls after the cursor has been away for three seconds.
   Timer? _barTimer;
   final _hide = BarHideLogic();
 
@@ -129,8 +134,32 @@ class FlowCoordinator {
         bar: rect,
         now: _ref.read(clockProvider)(),
       );
-      if (changed) await _window.setBarCollapsed(_hide.collapsed);
+      if (changed && _hide.collapsed) {
+        _barVisible = false;
+        _stopBarWatch();
+        await _window.setMode(WindowMode.hidden);
+      }
     });
+  }
+
+  /// Work controls are shown only on demand, leaving the desktop unobstructed.
+  /// Ctrl+Shift+F11 opens or closes them while a session is running.
+  Future<void> toggleControls() async {
+    if (_screen != FlowScreen.bar) return;
+    if (_barVisible) {
+      await collapseBar();
+    } else {
+      _barVisible = true;
+      await _window.setMode(WindowMode.bar);
+      await _startBarWatch();
+    }
+  }
+
+  Future<void> collapseBar() async {
+    if (_screen != FlowScreen.bar) return;
+    _barVisible = false;
+    _stopBarWatch();
+    await _window.setMode(WindowMode.hidden);
   }
 
   void _stopBarWatch() {

@@ -13,6 +13,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     CreateAndAttachConsole();
   }
 
+  // One agent per Windows login. A second launch used to open a duplicate
+  // tracking window over the worker's desktop.
+  HANDLE single_instance = CreateMutexW(
+      nullptr, TRUE, L"Local\\SquaremConsultAgentSingleInstance");
+  if (single_instance == nullptr) {
+    return EXIT_FAILURE;
+  }
+  if (GetLastError() == ERROR_ALREADY_EXISTS) {
+    CloseHandle(single_instance);
+    return EXIT_SUCCESS;
+  }
+
   // Initialize COM, so that it is available for use in the library and/or
   // plugins.
   ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
@@ -28,6 +40,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
   if (!window.Create(L"ConsultAgent", origin, size)) {
+    ReleaseMutex(single_instance);
+    CloseHandle(single_instance);
+    ::CoUninitialize();
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
@@ -39,5 +54,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   }
 
   ::CoUninitialize();
+  ReleaseMutex(single_instance);
+  CloseHandle(single_instance);
   return EXIT_SUCCESS;
 }
