@@ -24,8 +24,8 @@ Mock mode login: **EMP001 / 1234**. The mock simulates latency and roughly 15% n
 
 The PC is never locked. The agent runs hidden and shows a window only when needed:
 
-1. A CAD app starts (`acad.exe`, `Revit.exe`, `SketchUp.exe`) with no session running → a **project prompt** asks for sign-in, project and task. Choosing Start begins the timer, syncs the project folder and opens it. Excel and K-SMART in a browser are tracked but never trigger the prompt. *Not now* hides it; it returns after 5 minutes while CAD is still open.
-2. A small always-on-top **timer bar** shows project, task, today's active time and hours left. Buttons: lunch break, upload, end work. When the cursor stays away for 3 seconds it slides up to a thin coloured strip at the top edge (green active, amber idle, grey offline); touch the strip with the cursor to bring it back.
+1. A CAD app starts (`acad.exe`, `Revit.exe`, `SketchUp.exe`) after the agent is running, with no session active → a **project prompt** asks for sign-in, project and task once. Choosing Start begins the timer, syncs the project folder and opens it. An already-running CAD app does not raise a startup prompt; press **Ctrl+Shift+F11** to open it manually. Excel and K-SMART in a browser are tracked but never trigger the prompt. *Not now* keeps the agent hidden until a new CAD launch.
+2. While working, the agent stays hidden. Press **Ctrl+Shift+F11** to open the small **timer bar** with project, task, today's active time, hours left, lunch break, upload and end work. It hides again when the cursor stays away for 3 seconds.
 3. **Lunch break:** 60 minutes a day, in up to 2 pieces, any time, always after a "Start your lunch break?" confirmation. The timer pauses and break time is never counted as work.
 4. At **17:00** the session stops and asks whether to continue as **overtime**. Overtime is recorded separately and is never added to project time, locally or on the server (see the contract note).
 5. **Upload** lists every file in the project folder grouped by subfolder; changed files are ticked and the file picker opens in that folder.

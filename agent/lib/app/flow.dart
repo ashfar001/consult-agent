@@ -152,9 +152,13 @@ class FlowCoordinator {
     });
   }
 
-  /// Work controls are shown only on demand, leaving the desktop unobstructed.
-  /// Ctrl+Shift+F11 opens or closes them while a session is running.
+  /// Ctrl+Shift+F11 opens the project prompt when idle, or toggles the work
+  /// controls during a session. This covers CAD already running at startup.
   Future<void> toggleControls() async {
+    if (_screen == FlowScreen.idle) {
+      await openPrompt();
+      return;
+    }
     if (_screen != FlowScreen.bar) return;
     if (_barVisible) {
       await collapseBar();
