@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:win32/win32.dart' show VK_F11;
@@ -43,6 +44,7 @@ class FlowCoordinator {
     final cfg = _ref.read(configProvider);
     final detector = LaunchDetector(
       lister: _ref.read(processListerProvider),
+      triggers: cfg.triggerApps,
       pollInterval: Duration(seconds: cfg.launchPollSecs),
       isDue: _isDue,
     );
@@ -106,15 +108,23 @@ class FlowCoordinator {
     _barVisible = false;
     _screen = screen;
     _route = route;
-    // Resize first, so the new screen is laid out at its own size.
-    await _window.setMode(switch (screen) {
+    final mode = switch (screen) {
       FlowScreen.idle => WindowMode.hidden,
       FlowScreen.prompt => WindowMode.prompt,
       FlowScreen.bar => WindowMode.hidden,
       FlowScreen.small => WindowMode.small,
       FlowScreen.dialog => WindowMode.dialog,
-    });
-    _router.go(route);
+    };
+    if (mode == WindowMode.hidden) {
+      await _window.setMode(mode);
+      _router.go(route);
+    } else {
+      // Build the destination before exposing the native window. Otherwise a
+      // hidden idle route briefly appears as an empty white window.
+      _router.go(route);
+      await WidgetsBinding.instance.endOfFrame;
+      await _window.setMode(mode);
+    }
   }
 
   // Close the work controls after the cursor has been away for three seconds.

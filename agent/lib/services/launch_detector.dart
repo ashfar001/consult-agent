@@ -26,11 +26,13 @@ bool shouldPrompt({
 class LaunchDetector {
   LaunchDetector({
     required this.lister,
+    required this.triggers,
     required this.pollInterval,
     required this.isDue,
   });
 
   final ProcessLister lister;
+  final Set<String> triggers;
   final Duration pollInterval;
 
   /// Called with the running process names; returns true if the prompt
@@ -40,6 +42,7 @@ class LaunchDetector {
   final _controller = StreamController<void>.broadcast();
   Timer? _timer;
   bool _polling = false;
+  Set<String>? _previousTriggers;
 
   Stream<void> get promptRequests => _controller.stream;
 
@@ -52,7 +55,17 @@ class LaunchDetector {
     if (_polling) return;
     _polling = true;
     try {
-      if (isDue(await lister.running())) _controller.add(null);
+      final running = await lister.running();
+      final matching = running.intersection(triggers);
+      final previous = _previousTriggers;
+      _previousTriggers = matching;
+      // The first scan establishes what was already open. Prompt only when
+      // a CAD app starts after that, never on every poll of a running app.
+      if (previous != null &&
+          matching.difference(previous).isNotEmpty &&
+          isDue(running)) {
+        _controller.add(null);
+      }
     } finally {
       _polling = false;
     }
