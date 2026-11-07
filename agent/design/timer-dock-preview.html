@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ConsultAgent timer dock — demo</title>
+<style>
+  :root{font:14px system-ui,sans-serif;color:#272727;background:#e9ebed}
+  *{box-sizing:border-box}body{margin:0;padding:24px}h1{margin:0 0 4px;font-size:22px}p{margin:4px 0 18px;color:#66696f}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(440px,1fr));gap:18px}.scene{height:265px;position:relative;background:#d8dbde;border:1px solid #c1c5ca;border-radius:12px;overflow:hidden}.scene:before{content:'CAD workspace — demo only';position:absolute;top:18px;left:20px;color:#777;font-size:16px}.label{position:absolute;bottom:14px;left:20px;color:#555}.dock{position:absolute;top:80px;height:104px;width:6px;background:#fff;border:1px solid #dcdde1;border-radius:8px;overflow:hidden;transition:width 160ms ease-out;box-shadow:0 2px 8px #0001}.dock.right{right:0}.dock.left{left:0}.dock.expanded,.dock:hover,.dock:focus-within{width:400px}.dock:before{content:'';position:absolute;top:0;bottom:0;width:6px;background:#188750}.dock.right:before{right:0}.dock.left:before{left:0}.content{width:394px;height:102px;padding:8px 10px;position:absolute;top:0;white-space:nowrap}.dock.right .content{left:0}.dock.left .content{left:6px}.title{font-weight:700}.time{margin-top:3px;font-size:12px}.state{font-size:11px;color:#188750;margin-top:3px}.actions{display:flex;gap:5px;margin-top:7px}.actions button{background:#f3f4f5;border:1px solid #dcdde1;border-radius:5px;color:#272727;padding:5px 7px;font:11px system-ui;cursor:pointer}.actions button.end{background:#272727;color:white}.demo{font-size:11px;color:#66696f}.tools{display:flex;gap:10px;align-items:center;margin-top:16px}.tools button{padding:8px 12px;border:1px solid #bbb;border-radius:6px;background:white;cursor:pointer}@media(max-width:950px){.grid{grid-template-columns:1fr}}
+</style>
+<h1>SQUAREM timer dock</h1>
+<p>Design and interaction preview. Window behavior and timer data are demo-only; the Windows agent uses one native window.</p>
+<div class="grid">
+  <div class="scene"><div class="dock right" tabindex="0"><div class="content"><div class="title">KP-102 · BOQ in Excel</div><div class="time"><b>3h 00m left</b> · Today 2h 05m</div><div class="state">Active</div><div class="actions"><button>Break</button><button>Upload</button><button class="end">End work</button><button>Move left</button></div></div></div><div class="label">Right edge · collapsed 6 × 104 px</div></div>
+  <div class="scene"><div class="dock right expanded" tabindex="0"><div class="content"><div class="title">KP-102 · BOQ in Excel</div><div class="time"><b>3h 00m left</b> · Today 2h 05m</div><div class="state">Active</div><div class="actions"><button>Break</button><button>Upload</button><button class="end">End work</button><button>Move left</button></div></div></div><div class="label">Right edge · expanded 400 × 104 px</div></div>
+  <div class="scene"><div class="dock left" tabindex="0"><div class="content"><div class="title">KP-102 · BOQ in Excel</div><div class="time"><b>3h 00m left</b> · Today 2h 05m</div><div class="state">Active</div><div class="actions"><button>Break</button><button>Upload</button><button class="end">End work</button><button>Move right</button></div></div></div><div class="label">Left edge · collapsed 6 × 104 px</div></div>
+  <div class="scene"><div class="dock left expanded" tabindex="0"><div class="content"><div class="title">KP-102 · BOQ in Excel</div><div class="time"><b>3h 00m left</b> · Today 2h 05m</div><div class="state">Active</div><div class="actions"><button>Break</button><button>Upload</button><button class="end">End work</button><button>Move right</button></div></div></div><div class="label">Left edge · expanded 400 × 104 px</div></div>
+</div>
+<div class="tools"><button id="switch">Switch live edge</button><span class="demo">Hover the strip to reveal; leave for 3 seconds to hide. Focus inside keeps it open. Buttons show demo messages only.</span></div>
+<div id="live" class="scene" style="margin-top:14px"><div class="dock right" tabindex="0"><div class="content"><div class="title">KP-102 · BOQ in Excel</div><div class="time"><b>3h 00m left</b> · Today 2h 05m</div><div class="state">Active</div><div class="actions"><button>Break</button><button>Upload</button><button class="end">End work</button><button class="move">Move left</button></div></div></div><div class="label">Interactive demo · hover, leave, switch sides</div></div>
+<script>
+  const live=document.querySelector('#live .dock');let hide;
+  function move(){const left=live.classList.toggle('left');live.classList.toggle('right',!left);live.querySelector('.move').textContent=left?'Move right':'Move left'}
+  document.querySelector('#switch').onclick=move;live.querySelector('.move').onclick=move;
+  live.addEventListener('mouseenter',()=>{clearTimeout(hide);live.classList.add('expanded')});
+  live.addEventListener('mouseleave',()=>{hide=setTimeout(()=>{if(!live.contains(document.activeElement))live.classList.remove('expanded')},3000)});
+  live.addEventListener('focusout',()=>{hide=setTimeout(()=>{if(!live.matches(':hover')&&!live.contains(document.activeElement))live.classList.remove('expanded')},3000)});
+  for(const button of live.querySelectorAll('button:not(.move)'))button.onclick=()=>alert(button.textContent+' — demo only');
+</script>
+</html>

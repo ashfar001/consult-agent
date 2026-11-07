@@ -1,11 +1,12 @@
 import 'dart:convert';
-import 'dart:ui';
+import 'dart:io';
 
 import 'package:consult_agent/data/db/database.dart';
 import 'package:consult_agent/data/models/models.dart';
 import 'package:consult_agent/services/bar_hide_logic.dart';
 import 'package:consult_agent/services/folder_manager.dart';
 import 'package:consult_agent/services/sync_worker.dart';
+import 'package:consult_agent/services/timer_dock_preferences.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -13,96 +14,76 @@ import 'harness.dart';
 
 void main() {
   group('BarHideLogic', () {
-    const bar = Rect.fromLTWH(500, 0, 400, 56);
     final t0 = DateTime(2026, 10, 5, 9);
     late BarHideLogic logic;
 
-    setUp(() => logic = BarHideLogic()..reset(t0));
+    setUp(() => logic = BarHideLogic());
 
-    DateTime at(int secs) => t0.add(Duration(seconds: secs));
-
-    test('stays out while the cursor is on or near the bar', () {
-      for (var s = 0; s < 30; s++) {
-        expect(
-          logic.update(cursor: const Offset(600, 30), bar: bar, now: at(s)),
-          isFalse,
+    bool sample(int ms, {bool pointer = false, bool focus = false}) =>
+        logic.update(
+          pointerInside: pointer,
+          keyboardFocus: focus,
+          now: t0.add(Duration(milliseconds: ms)),
         );
-      }
+
+    test('starts collapsed; only a tab hover reveals it', () {
+      expect(logic.collapsed, isTrue);
+      expect(sample(0), isFalse);
+      expect(sample(500, focus: true), isFalse);
+      expect(sample(1000, pointer: true), isTrue);
       expect(logic.collapsed, isFalse);
-      // Just outside the edge still counts as near.
-      expect(
-        logic.update(cursor: const Offset(495, 30), bar: bar, now: at(31)),
-        isFalse,
-      );
     });
 
-    test('collapses once the cursor has been away for 3 s', () {
-      // The bar just appeared at t0; the cursor never came near it.
-      const away = Offset(100, 500);
-      expect(logic.update(cursor: away, bar: bar, now: at(1)), isFalse);
-      expect(logic.update(cursor: away, bar: bar, now: at(2)), isFalse);
-      expect(logic.update(cursor: away, bar: bar, now: at(3)), isTrue);
+    test('either pointer or keyboard focus keeps the dock open', () {
+      expect(sample(0, pointer: true), isTrue);
+      expect(sample(5000, pointer: true), isFalse);
+      expect(sample(6000, focus: true), isFalse);
+      expect(sample(10000, focus: true), isFalse);
+      expect(sample(10001), isFalse);
+      expect(sample(13000), isFalse);
+      expect(sample(13001), isTrue);
       expect(logic.collapsed, isTrue);
     });
 
-    test('coming back near the bar resets the timer', () {
-      logic.update(cursor: const Offset(100, 500), bar: bar, now: at(1));
-      logic.update(cursor: const Offset(600, 20), bar: bar, now: at(2));
-      expect(
-        logic.update(cursor: const Offset(100, 500), bar: bar, now: at(4)),
-        isFalse,
-      );
-      expect(logic.collapsed, isFalse);
+    test('regaining either input cancels the pending collapse', () {
+      logic.expand();
+      expect(sample(0), isFalse);
+      expect(sample(2900, pointer: true), isFalse);
+      expect(sample(3000), isFalse);
+      expect(sample(5900, focus: true), isFalse);
+      expect(sample(6000), isFalse);
+      expect(sample(8999), isFalse);
+      expect(sample(9000), isTrue);
     });
 
-    test('touching the strip expands it; elsewhere does not', () {
-      logic.update(cursor: const Offset(100, 500), bar: bar, now: at(5));
-      expect(logic.collapsed, isTrue);
-
-      // Top edge but beside the bar, or below the strip: stays collapsed.
-      expect(
-        logic.update(cursor: const Offset(100, 2), bar: bar, now: at(6)),
-        isFalse,
-      );
-      expect(
-        logic.update(cursor: const Offset(600, 30), bar: bar, now: at(6)),
-        isFalse,
-      );
-
-      expect(
-        logic.update(cursor: const Offset(600, 2), bar: bar, now: at(7)),
-        isTrue,
-      );
-      expect(logic.collapsed, isFalse);
-    });
-
-    test('only the strip on the bar monitor reveals it', () {
-      const shiftedBar = Rect.fromLTWH(-900, 32, 400, 104);
-      const strip = Rect.fromLTWH(-900, 32, 400, 6);
-      logic.update(cursor: const Offset(100, 500), bar: shiftedBar, now: at(3));
-      for (final y in [-1.0, 31.0, 38.0]) {
-        expect(
-          logic.update(cursor: Offset(-700, y), bar: strip, now: at(4)),
-          isFalse,
-        );
-      }
-      expect(
-        logic.update(cursor: const Offset(-700, 34), bar: strip, now: at(5)),
-        isTrue,
-      );
-    });
-
-    test('manual collapse waits for a fresh hover', () {
-      const onStrip = Offset(600, 2);
+    test('Hide requires the pointer to leave before revealing again', () {
+      logic.expand();
       logic.collapseManually();
-      expect(logic.update(cursor: onStrip, bar: bar, now: at(0)), isFalse);
-      expect(
-        logic.update(cursor: const Offset(600, 30), bar: bar, now: at(1)),
-        isFalse,
-      );
-      expect(logic.update(cursor: onStrip, bar: bar, now: at(2)), isTrue);
+      expect(sample(0, pointer: true), isFalse);
+      expect(sample(1000, pointer: true), isFalse);
+      expect(sample(1001), isFalse);
+      expect(sample(1002, pointer: true), isTrue);
+      expect(logic.collapsed, isFalse);
     });
   });
+
+  test(
+    'dock edge survives a fresh preference service and defaults right',
+    () async {
+      final temp = await Directory.systemTemp.createTemp('timer_dock_test');
+      addTearDown(() => temp.delete(recursive: true));
+      final file = File('${temp.path}/profile/dock-edge');
+      expect(await TimerDockPreferences(file).read(), DockEdge.right);
+      await TimerDockPreferences(file).write(DockEdge.left);
+      expect(await TimerDockPreferences(file).read(), DockEdge.left);
+      await TimerDockPreferences(file).write(DockEdge.right);
+      expect(await TimerDockPreferences(file).read(), DockEdge.right);
+    await TimerDockPreferences(file).write(DockEdge.left);
+    expect(await TimerDockPreferences(file).read(), DockEdge.left);
+      await file.writeAsString('unknown');
+      expect(await TimerDockPreferences(file).read(), DockEdge.right);
+    },
+  );
 
   group('subfolderForTask', () {
     const template = [

@@ -1,11 +1,13 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'bar_hide_logic.dart';
 import 'logging.dart';
+import 'timer_dock_preferences.dart';
 
 /// What the single agent window currently looks like.
 enum WindowMode {
@@ -15,7 +17,7 @@ enum WindowMode {
   /// Large window for sign-in and project selection.
   prompt,
 
-  /// Small always-on-top timer strip.
+  /// Small always-on-top edge dock.
   bar,
 
   /// Small centred window for break, overtime and notices.
@@ -25,29 +27,43 @@ enum WindowMode {
   dialog,
 }
 
+typedef DockInput = ({bool pointerInside, bool keyboardFocus});
+
 abstract interface class WindowService {
   Future<void> init();
   Future<void> setMode(WindowMode mode);
 
-  /// The timer bar's current rectangle (null if it isn't showing).
-  Future<Rect?> barBounds();
+  ValueListenable<DockEdge> get dockEdge;
+  Future<void> moveDock(DockEdge edge);
 
-  /// Resizes the bar to a thin strip at the top edge, or expands it again.
-  Future<void> setBarCollapsed(bool collapsed);
+  /// Native input state for the actual dock rectangle, or null outside dock mode.
+  Future<DockInput?> dockInput();
+
+  /// Hover expands without activation; an explicit hotkey can request focus.
+  Future<void> setBarCollapsed(bool collapsed, {bool focus = false});
 
   Future<void> exitApp();
 }
 
-/// window_manager-backed service. The PC is never locked: the window is
-/// hidden unless the agent needs the worker's attention.
+/// WindowManager handles dialogs; the Windows runner owns the dock's exact
+/// bounds and no-activate show/resize on the same top-level window.
 class DesktopWindowService implements WindowService {
   WindowMode _mode = WindowMode.hidden;
   static const _barChannel = MethodChannel('consult_agent/timer_bar');
-  static const _barWidth = 400.0;
-  static const _barHeight = 104.0;
+  final _dockEdge = ValueNotifier(DockEdge.right);
+  final _preferences = TimerDockPreferences.forCurrentUser();
+  bool _collapsed = true;
+
+  @override
+  ValueListenable<DockEdge> get dockEdge => _dockEdge;
 
   @override
   Future<void> init() async {
+    try {
+      _dockEdge.value = await _preferences?.read() ?? DockEdge.right;
+    } on FileSystemException catch (e, st) {
+      log.w('Could not read timer dock preference', error: e, stackTrace: st);
+    }
     await windowManager.ensureInitialized();
     await windowManager.waitUntilReadyToShow(
       const WindowOptions(
@@ -68,11 +84,15 @@ class DesktopWindowService implements WindowService {
     _mode = mode;
     try {
       if (previousMode == WindowMode.bar && mode != WindowMode.bar) {
+        if (Platform.isWindows) {
+          await _barChannel.invokeMethod<void>('leave');
+        } else {
+          await windowManager.hide();
+        }
         await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
       }
       await _apply(mode);
     } on Object catch (e, st) {
-      // A window hiccup must never leave the app stuck on the wrong screen.
       log.e('Window mode ${mode.name} failed', error: e, stackTrace: st);
     }
     log.d('Window mode: ${_mode.name}');
@@ -91,40 +111,81 @@ class DesktopWindowService implements WindowService {
       case WindowMode.dialog:
         await _show(const Size(940, 760), alignment: Alignment.center);
       case WindowMode.bar:
+        // A dialog may own focus. Hide it before switching to the passive dock.
+        await windowManager.hide();
         await windowManager.setAsFrameless();
         await windowManager.setResizable(false);
         await windowManager.setMinimumSize(
-          const Size(100, timerBarStripHeight),
+          const Size(timerDockTabWidth, timerDockHeight),
         );
-        await _resizeBar(_barHeight, center: true);
         await windowManager.setSkipTaskbar(true);
-        await windowManager.setAlwaysOnTop(true);
-        await windowManager.show();
-        await windowManager.focus();
+        _collapsed = true;
+        if (Platform.isWindows) {
+          // window_manager's Windows implementation activates even when passed
+          // inactive: true. Show the dock directly in the runner instead.
+          await _barChannel.invokeMethod<void>('enter', _dockEdge.value.name);
+        } else {
+          await windowManager.setAlwaysOnTop(true);
+          await _placeFallback();
+          await windowManager.show(inactive: true);
+        }
     }
   }
 
   @override
-  Future<Rect?> barBounds() async =>
-      _mode == WindowMode.bar ? await windowManager.getBounds() : null;
-
-  @override
-  Future<void> setBarCollapsed(bool collapsed) async {
-    if (_mode != WindowMode.bar) return;
-    await _resizeBar(collapsed ? timerBarStripHeight : _barHeight);
-  }
-
-  Future<void> _resizeBar(double height, {bool center = false}) async {
+  Future<void> moveDock(DockEdge edge) async {
+    if (_mode != WindowMode.bar || _dockEdge.value == edge) return;
     if (Platform.isWindows) {
-      await _barChannel.invokeMethod<void>('resize', [
-        _barWidth.toInt(),
-        height.toInt(),
-        center,
-      ]);
-      return;
+      await _barChannel.invokeMethod<void>('move', edge.name);
+    } else {
+      await _placeFallback(edge);
     }
-    await windowManager.setSize(Size(_barWidth, height));
-    if (center) await windowManager.setAlignment(Alignment.topCenter);
+    _dockEdge.value = edge;
+    try {
+      await _preferences?.write(edge);
+    } on FileSystemException catch (e, st) {
+      log.w('Could not save timer dock preference', error: e, stackTrace: st);
+    }
+  }
+
+  @override
+  Future<DockInput?> dockInput() async {
+    if (_mode != WindowMode.bar) return null;
+    if (!Platform.isWindows) {
+      return (
+        pointerInside: false,
+        keyboardFocus: await windowManager.isFocused(),
+      );
+    }
+    final input = await _barChannel.invokeListMethod<bool>('input');
+    if (input == null) return null;
+    return (pointerInside: input[0], keyboardFocus: input[1]);
+  }
+
+  @override
+  Future<void> setBarCollapsed(bool collapsed, {bool focus = false}) async {
+    if (_mode != WindowMode.bar) return;
+    if (Platform.isWindows) {
+      await _barChannel.invokeMethod<void>(collapsed ? 'collapse' : 'expand');
+    } else {
+      await _placeFallback(null, collapsed);
+    }
+    _collapsed = collapsed;
+    if (focus) await windowManager.focus();
+  }
+
+  Future<void> _placeFallback([DockEdge? edge, bool? collapsed]) async {
+    await windowManager.setSize(
+      Size(
+        (collapsed ?? _collapsed) ? timerDockTabWidth : timerDockWidth,
+        timerDockHeight,
+      ),
+    );
+    await windowManager.setAlignment(
+      (edge ?? _dockEdge.value) == DockEdge.left
+          ? Alignment.centerLeft
+          : Alignment.centerRight,
+    );
   }
 
   Future<void> _show(Size size, {required Alignment alignment}) async {
@@ -147,31 +208,37 @@ class DesktopWindowService implements WindowService {
   }
 }
 
-/// Records modes instead of touching a window (tests).
+/// Records modes and focus requests instead of touching a native window.
 class FakeWindowService implements WindowService {
   final List<WindowMode> modes = [];
   final List<bool> collapses = [];
-  bool _collapsed = false;
+  final _dockEdge = ValueNotifier(DockEdge.right);
+  bool pointerInside = false;
+  bool keyboardFocus = false;
+  int focusRequests = 0;
   bool exited = false;
+
+  @override
+  ValueListenable<DockEdge> get dockEdge => _dockEdge;
 
   @override
   Future<void> init() async {}
 
   @override
-  Future<void> setMode(WindowMode mode) async {
-    modes.add(mode);
-    _collapsed = false;
-  }
+  Future<void> setMode(WindowMode mode) async => modes.add(mode);
 
   @override
-  Future<Rect?> barBounds() async => modes.lastOrNull == WindowMode.bar
-      ? Rect.fromLTWH(500, 0, 400, _collapsed ? timerBarStripHeight : 104)
+  Future<void> moveDock(DockEdge edge) async => _dockEdge.value = edge;
+
+  @override
+  Future<DockInput?> dockInput() async => modes.lastOrNull == WindowMode.bar
+      ? (pointerInside: pointerInside, keyboardFocus: keyboardFocus)
       : null;
 
   @override
-  Future<void> setBarCollapsed(bool collapsed) async {
+  Future<void> setBarCollapsed(bool collapsed, {bool focus = false}) async {
     collapses.add(collapsed);
-    _collapsed = collapsed;
+    if (focus) focusRequests++;
   }
 
   @override

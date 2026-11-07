@@ -23,6 +23,16 @@ class FlutterWindow : public Win32Window {
                          LPARAM const lparam) noexcept override;
 
  private:
+  bool PlaceTimerDock(HWND window);
+  void AnimateTimerDock(HWND window);
+
+  // The dock reuses this window and keeps its display anchor across dialogs.
+  HMONITOR dock_monitor_ = nullptr;
+  bool dock_active_ = false;
+  bool dock_left_ = false;
+  double dock_width_dip_ = 6.0;
+  ULONGLONG dock_animation_start_ = 0;
+
   // The project to run.
   flutter::DartProject project_;
 

@@ -1,74 +1,57 @@
-import 'dart:ui';
+const timerDockTabWidth = 6.0;
+const timerDockWidth = 400.0;
+const timerDockHeight = 104.0;
+const timerDockHideAfter = Duration(seconds: 3);
 
-const timerBarStripHeight = 6.0;
-
-/// Decides when the timer bar tucks away to a thin strip at the top edge
-/// and when it slides back out.
-///
-/// It collapses after the cursor has stayed away from the bar for
-/// [hideAfter]; touching the strip (the top few pixels, over the bar's
-/// width) brings it back.
+/// Tracks the two reasons to keep the dock open. Native hit testing supplies
+/// both values, so this policy does not depend on Flutter's window DPI.
 class BarHideLogic {
-  BarHideLogic({
-    this.hideAfter = const Duration(seconds: 3),
-    this.stripHeight = timerBarStripHeight,
-    this.margin = 8,
-  });
-
-  final Duration hideAfter;
-
-  /// Visible height of the collapsed strip, and the hot zone that expands it.
-  final double stripHeight;
-
-  /// Slack around the bar so a cursor near its edge doesn't count as away.
-  final double margin;
-
-  bool collapsed = false;
+  bool collapsed = true;
   DateTime? _awaySince;
-  bool _waitForStripExit = false;
+  bool _waitForTabExit = false;
 
-  /// Starts a fresh expanded bar at [now].
-  void reset(DateTime now) {
-    collapsed = false;
-    _awaySince = now;
-    _waitForStripExit = false;
+  void reset() {
+    collapsed = true;
+    _awaySince = null;
+    _waitForTabExit = false;
   }
 
-  /// A pointer already on the strip must leave before it can reveal the bar.
+  void expand() {
+    collapsed = false;
+    _awaySince = null;
+    _waitForTabExit = false;
+  }
+
+  /// The mouse may still be over the tab after Hide. Require a new hover.
   void collapseManually() {
     collapsed = true;
-    _waitForStripExit = true;
+    _awaySince = null;
+    _waitForTabExit = true;
   }
 
-  /// Feeds one cursor reading in the same units as the current bar bounds.
-  /// Returns true if [collapsed] changed.
+  /// Returns true when the window needs to expand or collapse.
   bool update({
-    required Offset cursor,
-    required Rect bar,
+    required bool pointerInside,
+    required bool keyboardFocus,
     required DateTime now,
   }) {
-    if (!collapsed) {
-      if (bar.inflate(margin).contains(cursor)) {
-        _awaySince = null;
+    if (collapsed) {
+      if (_waitForTabExit) {
+        _waitForTabExit = pointerInside;
         return false;
       }
-      _awaySince ??= now;
-      if (now.difference(_awaySince!) >= hideAfter) {
-        collapsed = true;
-        return true;
-      }
-      return false;
-    }
-    final onStrip = bar.contains(cursor) && cursor.dy < bar.top + stripHeight;
-    if (_waitForStripExit) {
-      _waitForStripExit = onStrip;
-      return false;
-    }
-    if (onStrip) {
-      collapsed = false;
-      _awaySince = null;
+      if (!pointerInside) return false;
+      expand();
       return true;
     }
-    return false;
+
+    if (pointerInside || keyboardFocus) {
+      _awaySince = null;
+      return false;
+    }
+    _awaySince ??= now;
+    if (now.difference(_awaySince!) < timerDockHideAfter) return false;
+    collapsed = true;
+    return true;
   }
 }

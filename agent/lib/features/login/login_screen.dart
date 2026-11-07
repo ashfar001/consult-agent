@@ -5,6 +5,8 @@ import '../../app/flow.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../common/lock_scaffold.dart';
+import '../update/update_controller.dart';
+import '../update/update_notice.dart';
 import 'auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -28,6 +30,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _submit() {
+    if (ref.read(agentUpdateProvider)?.installing == true) return;
     ref
         .read(authControllerProvider.notifier)
         .login(_employeeId.text, _pin.text);
@@ -37,6 +40,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
     final config = ref.watch(configProvider);
+    final updating =
+        ref.watch(agentUpdateProvider.select((state) => state?.installing)) ==
+        true;
+    final busy = auth.busy || updating;
     final theme = Theme.of(context);
 
     ref.listen(authControllerProvider, (prev, next) {
@@ -82,7 +89,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       key: const Key('employeeId'),
                       controller: _employeeId,
                       autofocus: true,
-                      enabled: !auth.busy,
+                      enabled: !busy,
                       textCapitalization: TextCapitalization.characters,
                       style: theme.textTheme.bodyLarge,
                       decoration: const InputDecoration(
@@ -97,7 +104,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       key: const Key('pin'),
                       controller: _pin,
                       focusNode: _pinFocus,
-                      enabled: !auth.busy,
+                      enabled: !busy,
                       obscureText: true,
                       style: theme.textTheme.bodyLarge,
                       decoration: const InputDecoration(
@@ -121,7 +128,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     FilledButton(
-                      onPressed: auth.busy ? null : _submit,
+                      onPressed: busy ? null : _submit,
                       child: auth.busy
                           ? const SizedBox(
                               width: 24,
@@ -132,11 +139,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     TextButton(
-                      onPressed: auth.busy
+                      onPressed: busy
                           ? null
-                          : ref.read(flowCoordinatorProvider).dismissPrompt,
+                          : () {
+                              if (ref.read(agentUpdateProvider)?.installing !=
+                                  true) {
+                                ref
+                                    .read(flowCoordinatorProvider)
+                                    .dismissPrompt();
+                              }
+                            },
                       child: const Text('Not now'),
                     ),
+                    AgentUpdateNotice(authBusy: auth.busy),
                     if (config.mockApi) ...[
                       const SizedBox(height: 8),
                       Text(

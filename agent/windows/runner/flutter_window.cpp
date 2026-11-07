@@ -5,47 +5,68 @@
 #include <flutter_windows.h>
 
 #include <algorithm>
-#include <cstdint>
+#include <cmath>
 #include <optional>
+#include <string>
 
 #include "flutter/generated_plugin_registrant.h"
 
 namespace {
 
-bool ResizeTimerBar(HWND window, int width_dip, int height_dip, bool center) {
-  const HMONITOR previous = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
-  HMONITOR monitor = previous;
-  POINT cursor;
-  if (center && GetCursorPos(&cursor)) {
-    monitor = MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST);
-  }
-
-  MONITORINFO info = {};
-  info.cbSize = sizeof(info);
-  RECT current;
-  if (!GetMonitorInfo(monitor, &info) || !GetWindowRect(window, &current)) {
-    return false;
-  }
-
-  // Both the work area and SetWindowPos use physical screen coordinates.
-  // Scale the size using the destination monitor, keeping clear of the taskbar.
-  const RECT& work = info.rcWork;
-  const int dpi = FlutterDesktopGetDpiForMonitor(monitor);
-  const LONG width = std::min<LONG>(MulDiv(width_dip, dpi, 96),
-                                   work.right - work.left);
-  const int height = MulDiv(height_dip, dpi, 96);
-  const LONG left = center
-      ? work.left + (work.right - work.left - width) / 2
-      : std::clamp(current.left, work.left, work.right - width);
-  const auto place = [&]() {
-    return SetWindowPos(window, nullptr, left, work.top, width, height,
-                        SWP_NOACTIVATE | SWP_NOZORDER);
-  };
-  // A monitor change can apply the WM_DPICHANGED suggested bounds first.
-  return place() && (monitor == previous || place());
-}
+constexpr double kDockTabWidthDip = 6;
+constexpr double kDockPanelWidthDip = 400;
+constexpr int kDockHeightDip = 104;
+constexpr double kDockOpenMs = 160;
+constexpr UINT_PTR kDockAnimationTimer = 0xCA01;
+constexpr UINT kDockReposition = WM_APP + 0x101;
 
 }  // namespace
+
+bool FlutterWindow::PlaceTimerDock(HWND window) {
+  const HMONITOR previous = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
+  MONITORINFO info = {};
+  info.cbSize = sizeof(info);
+  if (dock_monitor_ == nullptr || !GetMonitorInfo(dock_monitor_, &info)) {
+    POINT cursor;
+    dock_monitor_ = GetCursorPos(&cursor)
+                        ? MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST)
+                        : previous;
+    if (!GetMonitorInfo(dock_monitor_, &info)) return false;
+  }
+
+  // Work area, cursor and SetWindowPos are all in physical screen pixels.
+  // Using the target monitor DPI keeps the tab 6 × 104 DIP at every scale.
+  const RECT& work = info.rcWork;
+  const auto scale = FlutterDesktopGetDpiForMonitor(dock_monitor_) / 96.0;
+  const LONG width = std::min<LONG>(
+      std::lround(dock_width_dip_ * scale), work.right - work.left);
+  const LONG height = std::lround(kDockHeightDip * scale);
+  const LONG left = dock_left_ ? work.left : work.right - width;
+  const LONG top = work.top + (work.bottom - work.top - height) / 2;
+
+  const auto place = [&]() {
+    RECT current;
+    if (IsWindowVisible(window) && GetWindowRect(window, &current) &&
+        current.left == left && current.top == top &&
+        current.right == left + width && current.bottom == top + height) {
+      return true;
+    }
+    return SetWindowPos(window, HWND_TOPMOST, left, top, width, height,
+                        SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOOWNERZORDER) !=
+           FALSE;
+  };
+  // A monitor change can apply the WM_DPICHANGED suggested bounds first.
+  return place() && (dock_monitor_ == previous || place());
+}
+
+void FlutterWindow::AnimateTimerDock(HWND window) {
+  const auto elapsed = static_cast<double>(GetTickCount64() - dock_animation_start_);
+  const double t = std::min(1.0, elapsed / kDockOpenMs);
+  const double remaining = 1 - t;
+  const double progress = 1 - remaining * remaining * remaining;
+  dock_width_dip_ = kDockTabWidthDip + (kDockPanelWidthDip - kDockTabWidthDip) * progress;
+  if (!PlaceTimerDock(window) || t >= 1) KillTimer(window, kDockAnimationTimer);
+}
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -74,25 +95,62 @@ bool FlutterWindow::OnCreate() {
       flutter_controller_->engine()->messenger(), "consult_agent/timer_bar",
       &flutter::StandardMethodCodec::GetInstance());
   bar_channel.SetMethodCallHandler([this](const auto& call, auto result) {
-    if (call.method_name() != "resize") {
+    const auto& method = call.method_name();
+    const HWND window = GetHandle();
+    bool placed = true;
+    if (method == "enter" || method == "move") {
+      const auto* edge = std::get_if<std::string>(call.arguments());
+      if (edge == nullptr || (*edge != "left" && *edge != "right")) {
+        result->Error("invalid_args", "Expected a left or right dock edge.");
+        return;
+      }
+      if (method == "enter") {
+        KillTimer(window, kDockAnimationTimer);
+        dock_active_ = true;
+        dock_width_dip_ = kDockTabWidthDip;
+      }
+      dock_left_ = *edge == "left";
+      placed = dock_active_ && PlaceTimerDock(window);
+    } else if (method == "leave") {
+      dock_active_ = false;
+      KillTimer(window, kDockAnimationTimer);
+      ShowWindow(window, SW_HIDE);
+    } else if (!dock_active_) {
+      result->Success();
+      return;
+    } else if (method == "input") {
+      POINT cursor;
+      RECT bounds;
+      const bool pointer_inside = IsWindowVisible(window) &&
+          GetCursorPos(&cursor) && GetWindowRect(window, &bounds) &&
+          PtInRect(&bounds, cursor) &&
+          GetAncestor(WindowFromPoint(cursor), GA_ROOT) == window;
+      const bool keyboard_focus = GetForegroundWindow() == window;
+      result->Success(flutter::EncodableValue(flutter::EncodableList{
+          flutter::EncodableValue(pointer_inside),
+          flutter::EncodableValue(keyboard_focus),
+      }));
+      return;
+    } else if (method == "expand") {
+      BOOL animations_enabled = TRUE;
+      SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, &animations_enabled, 0);
+      dock_animation_start_ = GetTickCount64();
+      if (!animations_enabled || !SetTimer(window, kDockAnimationTimer, 16, nullptr)) {
+        dock_width_dip_ = kDockPanelWidthDip;
+        placed = PlaceTimerDock(window);
+      }
+    } else if (method == "collapse") {
+      KillTimer(window, kDockAnimationTimer);
+      dock_width_dip_ = kDockTabWidthDip;
+      // Hide invoked by keyboard or click releases focus back to Windows.
+      if (GetForegroundWindow() == window) ShowWindow(window, SW_HIDE);
+      placed = PlaceTimerDock(window);
+    } else {
       result->NotImplemented();
       return;
     }
-    const auto* args = std::get_if<flutter::EncodableList>(call.arguments());
-    if (args == nullptr || args->size() != 3) {
-      result->Error("invalid_args", "Expected width, height and center.");
-      return;
-    }
-    const auto* width = std::get_if<int32_t>(&(*args)[0]);
-    const auto* height = std::get_if<int32_t>(&(*args)[1]);
-    const auto* center = std::get_if<bool>(&(*args)[2]);
-    if (width == nullptr || height == nullptr || center == nullptr ||
-        *width <= 0 || *height <= 0) {
-      result->Error("invalid_args", "Invalid timer bar dimensions.");
-      return;
-    }
-    if (!ResizeTimerBar(GetHandle(), *width, *height, *center)) {
-      result->Error("resize_failed", "Could not position the timer bar.");
+    if (!placed) {
+      result->Error("resize_failed", "Could not position the timer dock.");
       return;
     }
     result->Success();
@@ -119,6 +177,26 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  if (message == kDockReposition) {
+    if (dock_active_) PlaceTimerDock(hwnd);
+    return 0;
+  }
+  if (dock_active_) {
+    if (message == WM_TIMER && wparam == kDockAnimationTimer) {
+      AnimateTimerDock(hwnd);
+      return 0;
+    }
+    if (message == WM_NCHITTEST) return HTCLIENT;
+    if (message == WM_MOUSEACTIVATE && dock_width_dip_ <= kDockTabWidthDip) {
+      return MA_NOACTIVATE;
+    }
+    if (message == WM_DPICHANGED || message == WM_DISPLAYCHANGE ||
+        message == WM_SETTINGCHANGE) {
+      // Re-anchor after Flutter and Win32 process the new monitor geometry.
+      PostMessage(hwnd, kDockReposition, 0, 0);
+    }
+  }
+
   // Give Flutter, including plugins, an opportunity to handle window messages.
   if (flutter_controller_) {
     std::optional<LRESULT> result =
@@ -131,7 +209,7 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
 
   switch (message) {
     case WM_FONTCHANGE:
-      flutter_controller_->engine()->ReloadSystemFonts();
+      if (flutter_controller_) flutter_controller_->engine()->ReloadSystemFonts();
       break;
   }
 

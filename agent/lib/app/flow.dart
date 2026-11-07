@@ -10,6 +10,7 @@ import '../services/bar_hide_logic.dart';
 import '../services/launch_detector.dart';
 import '../services/logging.dart';
 import '../services/session_manager.dart';
+import '../services/timer_dock_preferences.dart';
 import '../services/win32/hotkey_watcher.dart';
 import '../services/window_service.dart';
 import '../features/login/auth_controller.dart';
@@ -22,7 +23,7 @@ enum FlowScreen { idle, prompt, bar, small, dialog }
 ///
 /// The PC is never locked. The window stays hidden until a CAD app starts
 /// with no session running (project prompt), then follows the session:
-/// timer bar while working, small windows for breaks / overtime / notices,
+/// timer dock while working, small windows for breaks / overtime / notices,
 /// large dialogs for upload and End Work.
 class FlowCoordinator {
   FlowCoordinator(this._ref);
@@ -114,52 +115,50 @@ class FlowCoordinator {
     return _windowTask;
   }
 
-  Future<void> _show(
-    FlowScreen screen,
-    String route,
-  ) => _queueWindowTask(() async {
-    _barTimer?.cancel();
-    _barTimer = null;
-    _screen = screen;
-    _route = route;
-    final mode = switch (screen) {
-      FlowScreen.idle => WindowMode.hidden,
-      FlowScreen.prompt => WindowMode.prompt,
-      FlowScreen.bar => WindowMode.bar,
-      FlowScreen.small => WindowMode.small,
-      FlowScreen.dialog => WindowMode.dialog,
-    };
-    if (mode == WindowMode.hidden) {
-      await _window.setMode(mode);
-      _router.go(route);
-    } else {
-      // Select the destination before exposing the native window. Waiting for
-      // endOfFrame here deadlocks on Windows while the window is hidden.
-      _router.go(route);
-      await _window.setMode(mode);
-      if (mode == WindowMode.bar) {
-        _barHide.reset(_ref.read(clockProvider)());
-        _barTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-          if (_barPollPending) return;
-          _barPollPending = true;
-          unawaited(
-            _queueWindowTask(() async {
-              if (_barTimer == timer) await _pollBar();
-            }).whenComplete(() => _barPollPending = false),
-          );
-        });
+  Future<void> _show(FlowScreen screen, String route) => _queueWindowTask(
+    () async {
+      _barTimer?.cancel();
+      _barTimer = null;
+      _screen = screen;
+      _route = route;
+      final mode = switch (screen) {
+        FlowScreen.idle => WindowMode.hidden,
+        FlowScreen.prompt => WindowMode.prompt,
+        FlowScreen.bar => WindowMode.bar,
+        FlowScreen.small => WindowMode.small,
+        FlowScreen.dialog => WindowMode.dialog,
+      };
+      if (mode == WindowMode.hidden) {
+        await _window.setMode(mode);
+        _router.go(route);
+      } else {
+        // Select the destination before exposing the native window. Waiting for
+        // endOfFrame here deadlocks on Windows while the window is hidden.
+        _router.go(route);
+        await _window.setMode(mode);
+        if (mode == WindowMode.bar) {
+          _barHide.reset();
+          _barTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+            if (_barPollPending) return;
+            _barPollPending = true;
+            unawaited(
+              _queueWindowTask(() async {
+                if (_barTimer == timer) await _pollBar();
+              }).whenComplete(() => _barPollPending = false),
+            );
+          });
+        }
       }
-    }
-  });
+    },
+  );
 
   Future<void> _pollBar() async {
-    final bounds = await _window.barBounds();
-    final cursor = _ref.read(cursorSourceProvider).position();
-    if (bounds == null || cursor == null) return;
+    final input = await _window.dockInput();
+    if (input == null || _barTimer == null) return;
     final wasCollapsed = _barHide.collapsed;
     if (_barHide.update(
-      cursor: cursor,
-      bar: bounds,
+      pointerInside: input.pointerInside,
+      keyboardFocus: input.keyboardFocus,
       now: _ref.read(clockProvider)(),
     )) {
       try {
@@ -185,8 +184,8 @@ class FlowCoordinator {
     return _queueWindowTask(() async {
       if (_screen != FlowScreen.bar) return;
       if (_barHide.collapsed) {
-        await _window.setBarCollapsed(false);
-        _barHide.reset(_ref.read(clockProvider)());
+        await _window.setBarCollapsed(false, focus: true);
+        _barHide.expand();
       } else {
         await _collapseBar();
       }
@@ -194,6 +193,10 @@ class FlowCoordinator {
   }
 
   Future<void> collapseBar() => _queueWindowTask(_collapseBar);
+
+  Future<void> moveDock(DockEdge edge) => _queueWindowTask(() async {
+    if (_screen == FlowScreen.bar) await _window.moveDock(edge);
+  });
 
   Future<void> _collapseBar() async {
     if (_screen != FlowScreen.bar || _barHide.collapsed) return;
