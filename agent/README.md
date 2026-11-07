@@ -20,9 +20,11 @@ The app creates a full sample config at first launch. Existing generated configs
 
 Before a worker signs in, create their employee ID and PIN in the SQUAREM console, assign the worker to a project and task, then approve the new PC on **Devices** after its first connection. On the worker PC, sign in and select the task to start tracking. Offline time is saved locally and syncs when the connection returns.
 
-Opening the agent shows sign-in and project selection. After **Not now**, it stays hidden until a new CAD app starts or **Ctrl+Shift+F11** is pressed; leaving a CAD app open does not repeatedly reopen the prompt. Starting work shows the timer bar with the clock, Break, Upload and End work. It stays visible until you select **Hide** or press **Ctrl+Shift+F11**; press the shortcut again to bring it back. **Ctrl+Shift+F12** still opens the protected admin exit. Only one agent process can run per Windows login.
+Opening the agent shows sign-in and project selection. After **Not now**, it stays hidden until a new CAD app starts or **Ctrl+Shift+F11** is pressed. Leaving a CAD app open does not repeatedly reopen the prompt. Starting work shows the timer bar with the clock, Break, Upload and End work. Select **Hide** or move the pointer away for about three seconds to collapse the bar to a colored strip at the top of the display's work area. Hover over the strip to restore the controls. **Ctrl+Shift+F11** also toggles the bar during a session. **Ctrl+Shift+F12** opens the protected admin exit. Only one agent process can run per Windows login.
 
 After five minutes without keyboard or mouse input (`idle_threshold_secs: 300`, checked every five seconds), the agent records time as idle instead of active. Idle alone does not end the session; normal work stops at the configured `workday_end` (default 17:00), when overtime can be offered.
+
+Launch `ConsultAgent.exe` from the worker's Windows account. If the configured project root is unwritable, project sync uses the configured user fallback, which defaults to `%USERPROFILE%\Projects`. If Windows prompts for elevation, check the executable and shortcut compatibility settings for **Run this program as an administrator**. If the app exits without a prompt, check for an already running agent and verify that the worker can read the installed app and config, and write to the configured data and log locations. The default log is `%ProgramData%\ConsultAgent\logs\agent.log` with a fallback under `%LOCALAPPDATA%\ConsultAgent\logs`.
 
 ## Build and check
 

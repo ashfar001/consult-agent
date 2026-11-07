@@ -36,6 +36,33 @@ void main() {
     expect(sanitizeName('  ...  '), 'Project');
   });
 
+  test(
+    'falls back when the configured project root is read-only',
+    () async {
+      final root = Directory(p.join(tmp.path, 'ReadOnly'))..createSync();
+      final fallback = p.join(tmp.path, 'Fallback');
+      expect((await Process.run('chmod', ['a-w', root.path])).exitCode, 0);
+      addTearDown(() => Process.run('chmod', ['u+w', root.path]));
+      final fm = FolderManager(
+        config: h.config.mergeJson({
+          'projects_root': root.path,
+          'fallback_projects_root': fallback,
+        }),
+        db: h.db,
+        api: h.api,
+      );
+
+      final project = (await h.api.myProjects()).first;
+      final result = await fm.sync(project);
+      expect(p.dirname(result.folder), fallback);
+      expect(result.downloaded, 3);
+      expect(Directory(fallback).listSync().map((e) => e.path), [
+        result.folder,
+      ]);
+    },
+    skip: Platform.isWindows,
+  );
+
   test('sync creates the template and downloads files', () async {
     final project = (await h.api.myProjects()).first; // KP-101
     final result = await folders().sync(project);

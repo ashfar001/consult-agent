@@ -6,6 +6,7 @@ import 'package:win32/win32.dart' show VK_F11;
 
 import '../domain/admin_gate.dart';
 import '../data/models/models.dart';
+import '../services/bar_hide_logic.dart';
 import '../services/launch_detector.dart';
 import '../services/logging.dart';
 import '../services/session_manager.dart';
@@ -29,7 +30,10 @@ class FlowCoordinator {
   final Ref _ref;
   FlowScreen _screen = FlowScreen.idle;
   String _route = Routes.idle;
-  bool _barVisible = false;
+  final _barHide = BarHideLogic();
+  Timer? _barTimer;
+  bool _barPollPending = false;
+  Future<void> _windowTask = Future.value();
   ({FlowScreen screen, String route})? _beforeAdmin;
   DateTime? _dismissedAt;
 
@@ -102,8 +106,20 @@ class FlowCoordinator {
     }
   }
 
-  Future<void> _show(FlowScreen screen, String route) async {
-    _barVisible = false;
+  Future<void> _queueWindowTask(Future<void> Function() task) {
+    final next = _windowTask.then((_) => task());
+    _windowTask = next.catchError((Object e, StackTrace st) {
+      log.e('Window transition failed', error: e, stackTrace: st);
+    });
+    return _windowTask;
+  }
+
+  Future<void> _show(
+    FlowScreen screen,
+    String route,
+  ) => _queueWindowTask(() async {
+    _barTimer?.cancel();
+    _barTimer = null;
     _screen = screen;
     _route = route;
     final mode = switch (screen) {
@@ -121,30 +137,69 @@ class FlowCoordinator {
       // endOfFrame here deadlocks on Windows while the window is hidden.
       _router.go(route);
       await _window.setMode(mode);
-      _barVisible = mode == WindowMode.bar;
+      if (mode == WindowMode.bar) {
+        _barHide.reset(_ref.read(clockProvider)());
+        _barTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+          if (_barPollPending) return;
+          _barPollPending = true;
+          unawaited(
+            _queueWindowTask(() async {
+              if (_barTimer == timer) await _pollBar();
+            }).whenComplete(() => _barPollPending = false),
+          );
+        });
+      }
     }
+  });
+
+  Future<void> _pollBar() async {
+    final bounds = await _window.barBounds();
+    final cursor = _ref.read(cursorSourceProvider).position();
+    if (bounds == null || cursor == null) return;
+    final wasCollapsed = _barHide.collapsed;
+    if (_barHide.update(
+      cursor: cursor,
+      bar: bounds,
+      now: _ref.read(clockProvider)(),
+    )) {
+      try {
+        await _window.setBarCollapsed(_barHide.collapsed);
+      } on Object {
+        _barHide.collapsed = wasCollapsed;
+        rethrow;
+      }
+    }
+  }
+
+  void dispose() {
+    _barTimer?.cancel();
+    _barTimer = null;
   }
 
   /// Ctrl+Shift+F11 opens the project prompt when idle, or toggles the work
   /// controls during a session. This covers CAD already running at startup.
-  Future<void> toggleControls() async {
+  Future<void> toggleControls() {
     if (_screen == FlowScreen.idle) {
-      await openPrompt();
-      return;
+      return openPrompt();
     }
-    if (_screen != FlowScreen.bar) return;
-    if (_barVisible) {
-      await collapseBar();
-    } else {
-      _barVisible = true;
-      await _window.setMode(WindowMode.bar);
-    }
+    return _queueWindowTask(() async {
+      if (_screen != FlowScreen.bar) return;
+      if (_barHide.collapsed) {
+        await _window.setBarCollapsed(false);
+        _barHide.reset(_ref.read(clockProvider)());
+      } else {
+        await _collapseBar();
+      }
+    });
   }
 
-  Future<void> collapseBar() async {
-    if (_screen != FlowScreen.bar) return;
-    _barVisible = false;
-    await _window.setMode(WindowMode.hidden);
+  Future<void> collapseBar() => _queueWindowTask(_collapseBar);
+
+  Future<void> _collapseBar() async {
+    if (_screen != FlowScreen.bar || _barHide.collapsed) return;
+    await _window.setBarCollapsed(true);
+    _barHide.collapseManually();
+    await _pollBar();
   }
 
   Future<void> openPrompt({String? message}) async {
@@ -232,6 +287,7 @@ class FlowCoordinator {
 
 final flowCoordinatorProvider = Provider<FlowCoordinator>((ref) {
   final flow = FlowCoordinator(ref);
+  ref.onDispose(flow.dispose);
   ref.listen(sessionManagerProvider, flow.onSession);
   return flow;
 });

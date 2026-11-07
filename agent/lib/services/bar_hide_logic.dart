@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+const timerBarStripHeight = 6.0;
+
 /// Decides when the timer bar tucks away to a thin strip at the top edge
 /// and when it slides back out.
 ///
@@ -9,7 +11,7 @@ import 'dart:ui';
 class BarHideLogic {
   BarHideLogic({
     this.hideAfter = const Duration(seconds: 3),
-    this.stripHeight = 6,
+    this.stripHeight = timerBarStripHeight,
     this.margin = 8,
   });
 
@@ -23,15 +25,23 @@ class BarHideLogic {
 
   bool collapsed = false;
   DateTime? _awaySince;
+  bool _waitForStripExit = false;
 
   /// Starts a fresh expanded bar at [now].
   void reset(DateTime now) {
     collapsed = false;
     _awaySince = now;
+    _waitForStripExit = false;
   }
 
-  /// Feeds one cursor reading ([cursor] and [bar] in the same units, bar as
-  /// it looks when expanded). Returns true if [collapsed] changed.
+  /// A pointer already on the strip must leave before it can reveal the bar.
+  void collapseManually() {
+    collapsed = true;
+    _waitForStripExit = true;
+  }
+
+  /// Feeds one cursor reading in the same units as the current bar bounds.
+  /// Returns true if [collapsed] changed.
   bool update({
     required Offset cursor,
     required Rect bar,
@@ -49,10 +59,11 @@ class BarHideLogic {
       }
       return false;
     }
-    final onStrip =
-        cursor.dy <= stripHeight &&
-        cursor.dx >= bar.left &&
-        cursor.dx <= bar.right;
+    final onStrip = bar.contains(cursor) && cursor.dy < bar.top + stripHeight;
+    if (_waitForStripExit) {
+      _waitForStripExit = onStrip;
+      return false;
+    }
     if (onStrip) {
       collapsed = false;
       _awaySince = null;

@@ -22,10 +22,10 @@ Mock mode login: **EMP001 / 1234**. The mock simulates latency and roughly 15% n
 
 ## How it works (plan 01)
 
-The PC is never locked. Opening the agent shows sign-in and project selection; it stays hidden during work:
+The PC is never locked. Opening the agent shows sign-in and project selection.
 
 1. Opening `ConsultAgent.exe` shows the **project prompt** for sign-in, project and task. Choosing Start begins the timer, syncs the project folder and opens it. After *Not now*, the window stays hidden until a new CAD app starts (`acad.exe`, `Revit.exe`, `SketchUp.exe`) or the worker presses **Ctrl+Shift+F11**. A CAD app left running does not repeatedly reopen the prompt. Excel and K-SMART in a browser are tracked but never trigger it.
-2. Starting work opens a small **timer bar** with project, task, today's active time, hours left, lunch break, upload and end work. It remains visible until the worker selects **Hide** or presses **Ctrl+Shift+F11**; the same shortcut brings it back.
+2. Starting work opens a small **timer bar** with project, task, today's active time, hours left, lunch break, upload and end work. **Hide** or about three seconds with the pointer away collapses it into a colored strip at the top of the display's work area. Hover over the strip to restore the controls, or press **Ctrl+Shift+F11** to toggle them.
 3. **Lunch break:** 60 minutes a day, in up to 2 pieces, any time, always after a "Start your lunch break?" confirmation. The timer pauses and break time is never counted as work.
 4. At **17:00** the session stops and asks whether to continue as **overtime**. Overtime is recorded separately and is never added to project time, locally or on the server (see the contract note).
 5. **Upload** lists every file in the project folder grouped by subfolder; changed files are ticked and the file picker opens in that folder.

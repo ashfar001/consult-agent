@@ -75,6 +75,33 @@ void main() {
       );
       expect(logic.collapsed, isFalse);
     });
+
+    test('only the strip on the bar monitor reveals it', () {
+      const shiftedBar = Rect.fromLTWH(-900, 32, 400, 104);
+      const strip = Rect.fromLTWH(-900, 32, 400, 6);
+      logic.update(cursor: const Offset(100, 500), bar: shiftedBar, now: at(3));
+      for (final y in [-1.0, 31.0, 38.0]) {
+        expect(
+          logic.update(cursor: Offset(-700, y), bar: strip, now: at(4)),
+          isFalse,
+        );
+      }
+      expect(
+        logic.update(cursor: const Offset(-700, 34), bar: strip, now: at(5)),
+        isTrue,
+      );
+    });
+
+    test('manual collapse waits for a fresh hover', () {
+      const onStrip = Offset(600, 2);
+      logic.collapseManually();
+      expect(logic.update(cursor: onStrip, bar: bar, now: at(0)), isFalse);
+      expect(
+        logic.update(cursor: const Offset(600, 30), bar: bar, now: at(1)),
+        isFalse,
+      );
+      expect(logic.update(cursor: onStrip, bar: bar, now: at(2)), isTrue);
+    });
   });
 
   group('subfolderForTask', () {

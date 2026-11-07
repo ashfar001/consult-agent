@@ -115,11 +115,13 @@ class FolderManager {
   /// Name that may check files out; others' files open read-only.
   final String? currentWorkerName;
 
-  /// `D:\Projects` if it exists or can be created, else the user fallback.
+  /// The configured project root if we can create folders in it.
   String projectsRoot() {
     for (final root in [config.projectsRoot, config.fallbackProjectsRoot]) {
       try {
-        Directory(root).createSync(recursive: true);
+        final directory = Directory(root)..createSync(recursive: true);
+        // Creating an existing directory can succeed with read-only access.
+        directory.createTempSync('.consultagent-write-').deleteSync();
         return root;
       } on FileSystemException {
         continue;

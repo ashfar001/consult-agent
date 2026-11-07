@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/painting.dart';
+import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'bar_hide_logic.dart';
 import 'logging.dart';
 
 /// What the single agent window currently looks like.
@@ -27,10 +29,10 @@ abstract interface class WindowService {
   Future<void> init();
   Future<void> setMode(WindowMode mode);
 
-  /// The timer bar's rectangle when expanded (null if it isn't showing).
+  /// The timer bar's current rectangle (null if it isn't showing).
   Future<Rect?> barBounds();
 
-  /// Slides the bar up so only a thin strip shows, or back down.
+  /// Resizes the bar to a thin strip at the top edge, or expands it again.
   Future<void> setBarCollapsed(bool collapsed);
 
   Future<void> exitApp();
@@ -40,10 +42,9 @@ abstract interface class WindowService {
 /// hidden unless the agent needs the worker's attention.
 class DesktopWindowService implements WindowService {
   WindowMode _mode = WindowMode.hidden;
-  Rect? _bar;
-
-  /// Height of the strip that stays visible when the bar is collapsed.
-  static const stripHeight = 6.0;
+  static const _barChannel = MethodChannel('consult_agent/timer_bar');
+  static const _barWidth = 400.0;
+  static const _barHeight = 104.0;
 
   @override
   Future<void> init() async {
@@ -63,9 +64,12 @@ class DesktopWindowService implements WindowService {
 
   @override
   Future<void> setMode(WindowMode mode) async {
+    final previousMode = _mode;
     _mode = mode;
-    _bar = null;
     try {
+      if (previousMode == WindowMode.bar && mode != WindowMode.bar) {
+        await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
+      }
       await _apply(mode);
     } on Object catch (e, st) {
       // A window hiccup must never leave the app stuck on the wrong screen.
@@ -87,37 +91,49 @@ class DesktopWindowService implements WindowService {
       case WindowMode.dialog:
         await _show(const Size(940, 760), alignment: Alignment.center);
       case WindowMode.bar:
-        await _show(
-          const Size(400, 104),
-          alignment: Alignment.topCenter,
-          taskbar: false,
+        await windowManager.setAsFrameless();
+        await windowManager.setResizable(false);
+        await windowManager.setMinimumSize(
+          const Size(100, timerBarStripHeight),
         );
-        _bar = await windowManager.getBounds();
+        await _resizeBar(_barHeight, center: true);
+        await windowManager.setSkipTaskbar(true);
+        await windowManager.setAlwaysOnTop(true);
+        await windowManager.show();
+        await windowManager.focus();
     }
   }
 
   @override
-  Future<Rect?> barBounds() async => _bar;
+  Future<Rect?> barBounds() async =>
+      _mode == WindowMode.bar ? await windowManager.getBounds() : null;
 
   @override
   Future<void> setBarCollapsed(bool collapsed) async {
-    final b = _bar;
-    if (b == null || _mode != WindowMode.bar) return;
-    final y = collapsed ? b.top - (b.height - stripHeight) : b.top;
-    await windowManager.setPosition(Offset(b.left, y));
+    if (_mode != WindowMode.bar) return;
+    await _resizeBar(collapsed ? timerBarStripHeight : _barHeight);
   }
 
-  Future<void> _show(
-    Size size, {
-    required Alignment alignment,
-    bool taskbar = true,
-  }) async {
+  Future<void> _resizeBar(double height, {bool center = false}) async {
+    if (Platform.isWindows) {
+      await _barChannel.invokeMethod<void>('resize', [
+        _barWidth.toInt(),
+        height.toInt(),
+        center,
+      ]);
+      return;
+    }
+    await windowManager.setSize(Size(_barWidth, height));
+    if (center) await windowManager.setAlignment(Alignment.topCenter);
+  }
+
+  Future<void> _show(Size size, {required Alignment alignment}) async {
     await windowManager.setResizable(true);
     await windowManager.setMinimumSize(const Size(100, 40));
     await windowManager.setSize(size);
     await windowManager.setResizable(false);
     await windowManager.setAlignment(alignment);
-    await windowManager.setSkipTaskbar(!taskbar);
+    await windowManager.setSkipTaskbar(false);
     await windowManager.setAlwaysOnTop(true);
     await windowManager.show();
     await windowManager.focus();
@@ -135,20 +151,28 @@ class DesktopWindowService implements WindowService {
 class FakeWindowService implements WindowService {
   final List<WindowMode> modes = [];
   final List<bool> collapses = [];
+  bool _collapsed = false;
   bool exited = false;
 
   @override
   Future<void> init() async {}
 
   @override
-  Future<void> setMode(WindowMode mode) async => modes.add(mode);
+  Future<void> setMode(WindowMode mode) async {
+    modes.add(mode);
+    _collapsed = false;
+  }
 
   @override
-  Future<Rect?> barBounds() async => const Rect.fromLTWH(500, 0, 400, 104);
+  Future<Rect?> barBounds() async => modes.lastOrNull == WindowMode.bar
+      ? Rect.fromLTWH(500, 0, 400, _collapsed ? timerBarStripHeight : 104)
+      : null;
 
   @override
-  Future<void> setBarCollapsed(bool collapsed) async =>
-      collapses.add(collapsed);
+  Future<void> setBarCollapsed(bool collapsed) async {
+    collapses.add(collapsed);
+    _collapsed = collapsed;
+  }
 
   @override
   Future<void> exitApp() async => exited = true;

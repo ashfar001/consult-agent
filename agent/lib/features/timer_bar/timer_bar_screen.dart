@@ -6,6 +6,7 @@ import '../../app/flow.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../domain/hour_limits.dart';
+import '../../services/bar_hide_logic.dart';
 import '../../services/session_manager.dart';
 
 /// The small always-on-top strip shown while working.
@@ -50,13 +51,11 @@ class TimerBarScreen extends ConsumerWidget {
       if (usage.level == UsageLevel.warning) hoursColor = AppColors.warning;
     }
 
-    return Material(
+    final controls = Material(
       color: Colors.white,
       child: Column(
         children: [
-          // The top band is all that shows when the bar tucks away; its
-          // colour tells active / idle / offline at a glance.
-          Container(height: 6, color: dot),
+          Container(height: timerBarStripHeight, color: dot),
           Expanded(
             child: Container(
               decoration: BoxDecoration(
@@ -172,6 +171,12 @@ class TimerBarScreen extends ConsumerWidget {
         ],
       ),
     );
+    return LayoutBuilder(
+      builder: (context, constraints) =>
+          constraints.maxHeight <= timerBarStripHeight + 1
+          ? ColoredBox(color: dot)
+          : controls,
+    );
   }
 }
 
@@ -191,6 +196,11 @@ class _BarButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => TextButton.icon(
     onPressed: onPressed,
+    style: TextButton.styleFrom(
+      minimumSize: const Size(0, 40),
+      padding: EdgeInsets.zero,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    ),
     icon: Icon(icon, size: 16, color: color ?? AppColors.primary),
     label: Text(
       label,
