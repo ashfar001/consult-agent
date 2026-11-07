@@ -25,7 +25,8 @@ void main() {
     final config = AppConfig.defaults(
       programDataDir: '/tmp',
       userProfileDir: '/tmp',
-    ).mergeJson({'company_name': 'Test Consultants', 'mock_api': true});
+    ).mergeJson({'company_name': 'Test Consultants'});
+    final window = FakeWindowService();
 
     await tester.pumpWidget(
       ProviderScope(
@@ -36,7 +37,7 @@ void main() {
           deviceInfoProvider.overrideWithValue(
             const DeviceInfo(deviceId: 'dev-1', pcName: 'DRAFT-PC-01'),
           ),
-          windowServiceProvider.overrideWithValue(FakeWindowService()),
+          windowServiceProvider.overrideWithValue(window),
           apiClientProvider.overrideWithValue(
             MockApiClient(latencyMs: 0, failureRate: 0, random: Random(1)),
           ),
@@ -48,6 +49,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
+    expect(window.modes, contains(WindowMode.prompt));
     expect(find.text('Test Consultants'), findsOneWidget);
     expect(find.text('DRAFT-PC-01'), findsOneWidget);
 

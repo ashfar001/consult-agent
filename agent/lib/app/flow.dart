@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:win32/win32.dart' show VK_F11;
@@ -57,8 +56,9 @@ class FlowCoordinator {
     final controlsHotkey = HotkeyWatcher(functionKey: VK_F11)..start();
     controlsHotkey.pressed.listen((_) => toggleControls());
     _ref.onDispose(controlsHotkey.dispose);
-    // Demo builds show the prompt straight away so it can be tried anywhere.
-    if (cfg.mockApi) unawaited(Future.microtask(openPrompt));
+    // A worker opening ConsultAgent must be able to sign in immediately.
+    // The first native window is hidden until the prompt route is selected.
+    unawaited(Future.microtask(openPrompt));
   }
 
   bool _isDue(Set<String> running) {
@@ -119,10 +119,9 @@ class FlowCoordinator {
       await _window.setMode(mode);
       _router.go(route);
     } else {
-      // Build the destination before exposing the native window. Otherwise a
-      // hidden idle route briefly appears as an empty white window.
+      // Select the destination before exposing the native window. Waiting for
+      // endOfFrame here deadlocks on Windows while the window is hidden.
       _router.go(route);
-      await WidgetsBinding.instance.endOfFrame;
       await _window.setMode(mode);
     }
   }

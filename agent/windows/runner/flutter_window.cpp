@@ -30,6 +30,8 @@ bool FlutterWindow::OnCreate() {
   // Window visibility belongs to DesktopWindowService. Showing the native
   // window on the first Flutter frame races its initial hide() call and can
   // leave a blank window over the worker's desktop.
+  // Still request a frame so Flutter can paint before Dart shows the prompt.
+  flutter_controller_->ForceRedraw();
 
   return true;
 }
