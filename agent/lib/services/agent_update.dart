@@ -49,6 +49,11 @@ class AgentUpdateService {
   /// Acknowledge reaching the startup sign-in screen after a helper restart.
   /// Write only inside the per-user directory used for this handoff.
   void acknowledgeStartup() {
+    try {
+      requireUnelevatedUpdater();
+    } on UpdateException {
+      return;
+    }
     final signal = Platform.environment[_startupSignal];
     if (signal == null) return;
     final operation = p.dirname(signal);
@@ -66,6 +71,11 @@ class AgentUpdateService {
   }
 
   String? takePreviousFailure() {
+    try {
+      requireUnelevatedUpdater();
+    } on UpdateException {
+      return null;
+    }
     try {
       final file = _result;
       if (!file.existsSync()) return null;
@@ -87,6 +97,13 @@ class AgentUpdateService {
     requireUnelevatedUpdater();
     final temp = _temp;
     final installDir = p.dirname(_executable);
+    final local = Platform.environment['LOCALAPPDATA'];
+    if (local == null ||
+        !p.isWithin(p.normalize(local), p.normalize(installDir))) {
+      throw const UpdateException(
+        'In-app updates require an installation inside your Windows user folder. Update manually from the releases page.',
+      );
+    }
     if (p.equals(temp.path, installDir) || p.isWithin(installDir, temp.path)) {
       throw const UpdateException(
         'This app is installed in a Windows data folder. Use the releases page to update it manually.',

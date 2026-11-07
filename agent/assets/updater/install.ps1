@@ -153,6 +153,10 @@ try {
         !$parent -or $install -notmatch '^[a-z]:\\') {
         throw 'Install ConsultAgent in its own local folder before using in-app updates.'
     }
+    $local = [IO.Path]::GetFullPath($env:LOCALAPPDATA)
+    if (!(Test-ContainsPath $local $install) -or $install -eq $local) {
+        throw 'In-app updates require an installation inside your Windows user folder. Update manually from the releases page.'
+    }
 
     for ($dir = [IO.DirectoryInfo]::new($install); $dir; $dir = $dir.Parent) {
         Assert-PlainItem $dir
