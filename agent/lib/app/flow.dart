@@ -6,7 +6,6 @@ import 'package:win32/win32.dart' show VK_F11;
 
 import '../domain/admin_gate.dart';
 import '../data/models/models.dart';
-import '../services/bar_hide_logic.dart';
 import '../services/launch_detector.dart';
 import '../services/logging.dart';
 import '../services/session_manager.dart';
@@ -104,14 +103,13 @@ class FlowCoordinator {
   }
 
   Future<void> _show(FlowScreen screen, String route) async {
-    _stopBarWatch();
     _barVisible = false;
     _screen = screen;
     _route = route;
     final mode = switch (screen) {
       FlowScreen.idle => WindowMode.hidden,
       FlowScreen.prompt => WindowMode.prompt,
-      FlowScreen.bar => WindowMode.hidden,
+      FlowScreen.bar => WindowMode.bar,
       FlowScreen.small => WindowMode.small,
       FlowScreen.dialog => WindowMode.dialog,
     };
@@ -123,32 +121,8 @@ class FlowCoordinator {
       // endOfFrame here deadlocks on Windows while the window is hidden.
       _router.go(route);
       await _window.setMode(mode);
+      _barVisible = mode == WindowMode.bar;
     }
-  }
-
-  // Close the work controls after the cursor has been away for three seconds.
-  Timer? _barTimer;
-  final _hide = BarHideLogic();
-
-  Future<void> _startBarWatch() async {
-    final rect = await _window.barBounds();
-    if (rect == null) return;
-    _hide.reset(_ref.read(clockProvider)());
-    final cursor = _ref.read(cursorSourceProvider);
-    _barTimer = Timer.periodic(const Duration(milliseconds: 250), (_) async {
-      final at = cursor.position();
-      if (at == null) return;
-      final changed = _hide.update(
-        cursor: at,
-        bar: rect,
-        now: _ref.read(clockProvider)(),
-      );
-      if (changed && _hide.collapsed) {
-        _barVisible = false;
-        _stopBarWatch();
-        await _window.setMode(WindowMode.hidden);
-      }
-    });
   }
 
   /// Ctrl+Shift+F11 opens the project prompt when idle, or toggles the work
@@ -164,21 +138,13 @@ class FlowCoordinator {
     } else {
       _barVisible = true;
       await _window.setMode(WindowMode.bar);
-      await _startBarWatch();
     }
   }
 
   Future<void> collapseBar() async {
     if (_screen != FlowScreen.bar) return;
     _barVisible = false;
-    _stopBarWatch();
     await _window.setMode(WindowMode.hidden);
-  }
-
-  void _stopBarWatch() {
-    _barTimer?.cancel();
-    _barTimer = null;
-    _hide.collapsed = false;
   }
 
   Future<void> openPrompt({String? message}) async {

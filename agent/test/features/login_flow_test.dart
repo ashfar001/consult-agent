@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:consult_agent/app/app.dart';
+import 'package:consult_agent/app/flow.dart';
 import 'package:consult_agent/app/providers.dart';
 import 'package:consult_agent/config/app_config.dart';
 import 'package:consult_agent/data/api/mock_api_client.dart';
@@ -74,6 +75,14 @@ void main() {
     expect(find.text('KP-102'), findsOneWidget);
     expect(find.text('KP-103'), findsOneWidget);
     expect(find.text('Hello Arun Kumar'), findsOneWidget);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(ConsultAgentApp)),
+    );
+    final flow = container.read(flowCoordinatorProvider);
+    await flow.showBar();
+    expect(flow.screen, FlowScreen.bar);
+    expect(window.modes.last, WindowMode.bar);
 
     // Unmount so the clock timer is cancelled.
     await tester.pumpWidget(const SizedBox());
