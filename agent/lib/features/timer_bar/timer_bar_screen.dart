@@ -94,7 +94,7 @@ class TimerDockView extends StatelessWidget {
         // Allow for device pixel rounding at fractional Windows DPI.
         if (constraints.maxWidth <= timerDockTabWidth + 1) {
           return Semantics(
-            label: 'Timer dock. $status. Hover or press Control Shift F11.',
+            label: 'Timer dock. $status. Hover to reveal controls.',
             child: ColoredBox(color: accent),
           );
         }

@@ -39,8 +39,10 @@ class AgentUpdateService {
     return File(p.join(_temp.path, '$key.error'));
   }
 
-  Future<AgentRelease?> check() =>
-      _client.latest(windowsAgentVersion(_executable));
+  Future<AgentRelease?> check() {
+    requireUnelevatedUpdater();
+    return _client.latest(windowsAgentVersion(_executable));
+  }
 
   void openReleasesPage() => openAgentReleasesPage();
 
@@ -82,6 +84,7 @@ class AgentUpdateService {
     AgentRelease release,
     void Function(double?) onProgress,
   ) async {
+    requireUnelevatedUpdater();
     final temp = _temp;
     final installDir = p.dirname(_executable);
     if (p.equals(temp.path, installDir) || p.isWithin(installDir, temp.path)) {
