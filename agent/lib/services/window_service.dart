@@ -67,7 +67,7 @@ class DesktopWindowService implements WindowService {
     await windowManager.ensureInitialized();
     await windowManager.waitUntilReadyToShow(
       const WindowOptions(
-        title: 'ConsultAgent',
+        title: 'SQUAREM',
         titleBarStyle: TitleBarStyle.hidden,
         backgroundColor: Color(0xFFF5F6F8),
         skipTaskbar: true,

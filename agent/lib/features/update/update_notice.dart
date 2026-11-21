@@ -42,10 +42,7 @@ class AgentUpdateNotice extends ConsumerWidget {
       child: Column(
         children: [
           if (release != null)
-            Text(
-              'ConsultAgent v${release.version} is available.',
-              style: style,
-            ),
+            Text('SQUAREM v${release.version} is available.', style: style),
           if (error != null)
             Padding(
               padding: const EdgeInsets.only(top: 4),
@@ -61,7 +58,7 @@ class AgentUpdateNotice extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               update.restarting
-                  ? 'Restarting ConsultAgent…'
+                  ? 'Restarting SQUAREM…'
                   : update.progress == null
                   ? 'Preparing the update…'
                   : 'Downloading… ${(update.progress! * 100).round()}%',

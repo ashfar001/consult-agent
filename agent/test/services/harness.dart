@@ -25,7 +25,7 @@ class QuietSyncWorker extends SyncWorker {
 }
 
 Project project({
-  String id = 'p-1',
+  String id = 'p-101',
   double allocatedHours = 10,
   int usedSecs = 0,
   OverrunMode mode = OverrunMode.allow,

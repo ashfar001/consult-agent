@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "ConsultAgent" "\0"
-            VALUE "FileDescription", "ConsultAgent Workstation Agent" "\0"
+            VALUE "CompanyName", "SQUAREM" "\0"
+            VALUE "FileDescription", "SQUAREM Workstation Agent" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "ConsultAgent" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 ConsultAgent. All rights reserved." "\0"
+            VALUE "InternalName", "SQUAREM" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 SQUAREM. All rights reserved." "\0"
             VALUE "OriginalFilename", "ConsultAgent.exe" "\0"
-            VALUE "ProductName", "ConsultAgent" "\0"
+            VALUE "ProductName", "SQUAREM" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

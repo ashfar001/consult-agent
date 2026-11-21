@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../data/api/api_client.dart';
 import '../../services/folder_manager.dart';
 import '../../services/logging.dart';
 import '../../services/session_manager.dart';
@@ -50,6 +51,20 @@ class OpeningController extends Notifier<OpeningState> {
       );
       return;
     }
+    var sessionStarted = false;
+    Future<void> releaseFailedStart() async {
+      if (!sessionStarted) return;
+      try {
+        await ref.read(sessionManagerProvider.notifier).endSession();
+      } on Object catch (error, stack) {
+        log.e(
+          'Could not close failed project opening',
+          error: error,
+          stackTrace: stack,
+        );
+      }
+    }
+
     try {
       await ref
           .read(sessionManagerProvider.notifier)
@@ -58,6 +73,7 @@ class OpeningController extends Notifier<OpeningState> {
             project: selection.project,
             task: selection.task,
           );
+      sessionStarted = true;
       state = const OpeningState(phase: OpeningPhase.syncing);
       final folders = ref.read(folderManagerProvider);
       final result = await folders.sync(
@@ -87,7 +103,17 @@ class OpeningController extends Notifier<OpeningState> {
       );
       // Anything left over from earlier (offline) uploads.
       unawaited(ref.read(uploaderProvider).processQueue());
+    } on ApiException catch (e, st) {
+      await releaseFailedStart();
+      log.e('Opening project failed', error: e, stackTrace: st);
+      state = OpeningState(
+        phase: OpeningPhase.failed,
+        error: e.isNetwork
+            ? 'Connect to the server before starting work. This prevents the same employee from working on two PCs at once.'
+            : e.message,
+      );
     } on Object catch (e, st) {
+      await releaseFailedStart();
       log.e('Opening project failed', error: e, stackTrace: st);
       state = OpeningState(phase: OpeningPhase.failed, error: '$e');
     }

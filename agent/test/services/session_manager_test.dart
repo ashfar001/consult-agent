@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:consult_agent/data/api/api_client.dart';
 import 'package:consult_agent/data/models/models.dart';
 import 'package:consult_agent/domain/hour_limits.dart';
 import 'package:consult_agent/services/session_manager.dart';
@@ -25,7 +26,16 @@ void main() {
     final row = await h.db.sessionDao.openSession();
     expect(row, isNotNull);
     expect(row!.kind, 'normal');
+    expect(row.serverId, isNotNull);
     expect(await h.db.outboxDao.pendingCount(), 1);
+  });
+
+  test('offline start leaves no local work session or running timer', () async {
+    h.api.offline = true;
+    await expectLater(begin(project()), throwsA(isA<ApiException>()));
+    expect(h.state.hasSession, isFalse);
+    expect(await h.db.sessionDao.openSession(), isNull);
+    expect(await h.db.outboxDao.pendingCount(), 0);
   });
 
   test(
@@ -180,7 +190,7 @@ void main() {
       expect(h.state.blockMessage, isNull);
       expect(h.state.usage!.unsyncedSecs, 0);
       expect(h.state.todayActiveSecs, 600);
-      expect(await h.db.sessionDao.unsyncedActiveSecs('p-1'), 0);
+      expect(await h.db.sessionDao.unsyncedActiveSecs('p-101'), 0);
     });
 
     test('declining overtime clears the session for End Work', () async {

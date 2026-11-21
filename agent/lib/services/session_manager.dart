@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import '../app/providers.dart';
+import '../data/api/api_client.dart';
 import '../data/db/database.dart';
 import '../data/models/models.dart';
 import '../domain/activity_accumulator.dart';
@@ -122,6 +123,8 @@ class SessionManager extends Notifier<SessionState> {
   bool _busy = false;
   bool _warned = false;
   String? _workerId;
+  final Map<String, ({String id, DateTime startedAt})> _pendingStarts = {};
+  bool _starting = false;
 
   @override
   SessionState build() {
@@ -154,55 +157,86 @@ class SessionManager extends Notifier<SessionState> {
     required ProjectTask task,
   }) async {
     if (state.hasSession) return;
-    _workerId = workerId;
-    final now = _clock();
-    final overtime = _workday.isOvertime(now);
-    final id = _uuid.v4();
-    await _db.sessionDao.insertSession(
-      SessionsCompanion.insert(
-        localId: id,
-        workerId: workerId,
-        projectId: project.id,
-        taskId: task.id,
-        startedAt: now,
-        status: 'open',
-        kind: Value(overtime ? 'overtime' : 'normal'),
-      ),
-    );
-    await _db.outboxDao.enqueue(
-      clientId: id,
-      kind: OutboxKind.sessionStart,
-      payload: {
-        'client_id': id,
-        'project_id': project.id,
-        'task_id': task.id,
-        'started_at': isoUtc(now),
-      },
-      now: now,
-    );
-    if (overtime) {
-      await _event(AgentEventType.overtimeStart, {'project_id': project.id});
+    if (_starting) {
+      throw const ApiException('Work is already starting. Please wait.');
     }
-    _warned = false;
-    _acc.reset(now);
-    state = SessionState(
-      status: TrackStatus.active,
-      session: WorkSession(
-        localId: id,
-        projectId: project.id,
-        taskId: task.id,
-        startedAt: now,
-        status: SessionStatus.open,
-      ),
-      project: project,
-      task: task,
-      overtime: overtime,
-      serverUsedSecs: project.myUsedSeconds,
-    );
-    await _refreshLive();
-    await _refreshBreak(now);
-    _startTimer();
-    ref.read(syncWorkerProvider).kick();
+    _starting = true;
+    try {
+      _workerId = workerId;
+      final requestKey = '$workerId/${project.id}/${task.id}';
+      final pending = _pendingStarts[requestKey];
+      final now = pending?.startedAt ?? _clock();
+      final overtime = _workday.isOvertime(now);
+      final id = pending?.id ?? _uuid.v4();
+      _pendingStarts[requestKey] = (id: id, startedAt: now);
+      // The backend reserves one active session for this employee before the
+      // local timer or project folder opens. A second PC receives HTTP 409.
+      final String serverId;
+      try {
+        serverId = await ref
+            .read(apiClientProvider)
+            .startSession(
+              clientId: id,
+              projectId: project.id,
+              taskId: task.id,
+              startedAt: now,
+            );
+      } on ApiException catch (e) {
+        if (!e.isRetryable) {
+          _pendingStarts.remove(requestKey);
+        }
+        rethrow;
+      }
+      await _db.sessionDao.insertSession(
+        SessionsCompanion.insert(
+          localId: id,
+          serverId: Value(serverId),
+          workerId: workerId,
+          projectId: project.id,
+          taskId: task.id,
+          startedAt: now,
+          status: 'open',
+          kind: Value(overtime ? 'overtime' : 'normal'),
+        ),
+      );
+      await _db.outboxDao.enqueue(
+        clientId: id,
+        kind: OutboxKind.sessionStart,
+        payload: {
+          'client_id': id,
+          'project_id': project.id,
+          'task_id': task.id,
+          'started_at': isoUtc(now),
+        },
+        now: now,
+      );
+      _pendingStarts.remove(requestKey);
+      if (overtime) {
+        await _event(AgentEventType.overtimeStart, {'project_id': project.id});
+      }
+      _warned = false;
+      _acc.reset(now);
+      state = SessionState(
+        status: TrackStatus.active,
+        session: WorkSession(
+          localId: id,
+          projectId: project.id,
+          taskId: task.id,
+          startedAt: now,
+          status: SessionStatus.open,
+        ),
+        project: project,
+        task: task,
+        overtime: overtime,
+        serverUsedSecs: project.myUsedSeconds,
+      );
+      await _refreshLive();
+      await _refreshBreak(now);
+      _startTimer();
+      ref.read(syncWorkerProvider).kick();
+    } finally {
+      _starting = false;
+    }
   }
 
   void _startTimer() {
@@ -355,6 +389,22 @@ class SessionManager extends Notifier<SessionState> {
       payload: {'local_id': localId, 'ended_at': isoUtc(now), 'unclean': false},
       now: now,
     );
+    final serverId = (await _db.sessionDao.byId(localId))?.serverId;
+    if (serverId != null) {
+      try {
+        // Release the employee's server-side slot before a same-day restart or
+        // the automatic transition into overtime. The queued stop remains as
+        // an idempotent retry if this request fails or the app exits.
+        await ref
+            .read(apiClientProvider)
+            .stopSession(sessionId: serverId, endedAt: now, unclean: false)
+            .timeout(const Duration(seconds: 5));
+      } on ApiException {
+        // The durable outbox will retry when connectivity returns.
+      } on TimeoutException {
+        // The durable outbox will retry when connectivity returns.
+      }
+    }
     ref.read(syncWorkerProvider).kick();
   }
 

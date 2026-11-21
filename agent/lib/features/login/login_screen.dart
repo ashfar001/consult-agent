@@ -65,16 +65,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(
-                      Icons.lock_outline,
-                      size: 48,
-                      color: AppColors.primary,
+                    Center(
+                      child: Image.asset(
+                        'assets/squarem-avatar-white-1080.png',
+                        width: 80,
+                        height: 80,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Sign in to start work',
+                      'SQUAREM',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.headlineMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Sign in to start work',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyLarge,
                     ),
                     const SizedBox(height: 4),
                     Text(

@@ -80,6 +80,25 @@ void main() {
       startedAt: now,
     );
     expect(a, b);
+    await expectLater(
+      api.startSession(
+        clientId: 'another-pc',
+        projectId: 'p-101',
+        taskId: 't-1011',
+        startedAt: now,
+      ),
+      throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 409)),
+    );
+    await api.stopSession(sessionId: a, endedAt: now, unclean: false);
+    expect(
+      await api.startSession(
+        clientId: 'another-pc',
+        projectId: 'p-101',
+        taskId: 't-1011',
+        startedAt: now,
+      ),
+      isNot(a),
+    );
   });
 
   test('heartbeats are deduped by client id', () async {

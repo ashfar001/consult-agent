@@ -25,7 +25,7 @@ class _ConsultAgentAppState extends ConsumerState<ConsultAgentApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'ConsultAgent',
+      title: 'SQUAREM',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       routerConfig: ref.watch(routerProvider),

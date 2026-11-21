@@ -38,6 +38,7 @@ class MockApiClient implements ApiClient {
   final Map<String, List<RemoteFile>> _files = {};
   final Map<String, String> _sessionsByClientId = {};
   final Map<String, ({String projectId, DateTime startedAt})> _sessions = {};
+  String? _activeSessionId;
   final Set<String> _seenHeartbeats = {};
   final Set<String> _seenWrites = {};
   final Map<String, ({String projectId, String path, int size})> _uploads = {};
@@ -250,9 +251,18 @@ class MockApiClient implements ApiClient {
     await _simulate();
     _requireAuth();
     _project(projectId);
+    final previous = _sessionsByClientId[clientId];
+    if (previous != null) return previous;
+    if (_activeSessionId != null) {
+      throw const ApiException(
+        'This employee is already working on another session. End that work before starting here.',
+        statusCode: 409,
+      );
+    }
     return _sessionsByClientId.putIfAbsent(clientId, () {
       final id = _id('s');
       _sessions[id] = (projectId: projectId, startedAt: startedAt);
+      _activeSessionId = id;
       return id;
     });
   }
@@ -308,6 +318,7 @@ class MockApiClient implements ApiClient {
     await _simulate();
     _requireAuth();
     // Idempotent: stopping an already-stopped session is a no-op.
+    if (_activeSessionId == sessionId) _activeSessionId = null;
   }
 
   @override
