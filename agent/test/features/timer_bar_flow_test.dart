@@ -109,6 +109,10 @@ void main() {
     now = now.add(const Duration(seconds: 4));
     await tester.pump(const Duration(milliseconds: 50));
     expect(window.collapses, [false, true, false, true, false]);
+    await flow.dismissPrompt();
+    expect(window.exitCalls, 1, reason: 'Not now must stop the process');
+    await flow.finishWork();
+    expect(window.exitCalls, 2, reason: 'Done after End Work must stop it');
     await tester.pumpWidget(const SizedBox());
   });
 }

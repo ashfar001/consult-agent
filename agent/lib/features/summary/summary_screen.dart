@@ -78,7 +78,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
                 onPressed: () async {
                   ref.read(authControllerProvider.notifier).signOut();
                   ref.read(summaryDateProvider.notifier).set(null);
-                  await ref.read(flowCoordinatorProvider).showIdle();
+                  await ref.read(flowCoordinatorProvider).finishWork();
                 },
                 child: const Text('Done'),
               ),

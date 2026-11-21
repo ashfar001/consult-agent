@@ -30,6 +30,9 @@ class FlutterWindow : public Win32Window {
   HMONITOR dock_monitor_ = nullptr;
   bool dock_active_ = false;
   bool dock_left_ = false;
+  LONG_PTR dock_saved_style_ = 0;
+  LONG_PTR dock_saved_ex_style_ = 0;
+  bool dock_styles_saved_ = false;
   double dock_width_dip_ = 6.0;
   ULONGLONG dock_animation_start_ = 0;
 

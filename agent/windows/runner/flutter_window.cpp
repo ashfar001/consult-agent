@@ -106,6 +106,22 @@ bool FlutterWindow::OnCreate() {
       }
       if (method == "enter") {
         KillTimer(window, kDockAnimationTimer);
+        // A resizable overlapped window retains an invisible resize frame.
+        // At 6 DIP that frame can consume half the left-edge status strip.
+        // Use a true borderless popup while docked, then restore dialog styles.
+        if (!dock_styles_saved_) {
+          dock_saved_style_ = GetWindowLongPtr(window, GWL_STYLE);
+          dock_saved_ex_style_ = GetWindowLongPtr(window, GWL_EXSTYLE);
+          dock_styles_saved_ = true;
+        }
+        SetWindowLongPtr(window, GWL_STYLE,
+                         (dock_saved_style_ & ~WS_OVERLAPPEDWINDOW) | WS_POPUP);
+        SetWindowLongPtr(window, GWL_EXSTYLE,
+                         dock_saved_ex_style_ & ~(WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE |
+                                                  WS_EX_DLGMODALFRAME | WS_EX_STATICEDGE));
+        SetWindowPos(window, nullptr, 0, 0, 0, 0,
+                     SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE |
+                         SWP_NOZORDER | SWP_NOACTIVATE);
         dock_active_ = true;
         dock_width_dip_ = kDockTabWidthDip;
       }
@@ -115,6 +131,14 @@ bool FlutterWindow::OnCreate() {
       dock_active_ = false;
       KillTimer(window, kDockAnimationTimer);
       ShowWindow(window, SW_HIDE);
+      if (dock_styles_saved_) {
+        SetWindowLongPtr(window, GWL_STYLE, dock_saved_style_);
+        SetWindowLongPtr(window, GWL_EXSTYLE, dock_saved_ex_style_);
+        SetWindowPos(window, nullptr, 0, 0, 0, 0,
+                     SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE |
+                         SWP_NOZORDER | SWP_NOACTIVATE);
+        dock_styles_saved_ = false;
+      }
     } else if (!dock_active_) {
       result->Success();
       return;

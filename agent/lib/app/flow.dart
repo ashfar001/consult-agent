@@ -211,11 +211,19 @@ class FlowCoordinator {
     await _show(FlowScreen.prompt, Routes.prompt);
   }
 
-  /// "Not now": hide, and ask again after the retry interval.
+  /// "Not now": leave the agent completely, including its background watcher.
   Future<void> dismissPrompt() async {
-    _dismissedAt = _ref.read(clockProvider)();
     _ref.read(authControllerProvider.notifier).signOut();
-    await _show(FlowScreen.idle, Routes.idle);
+    _barTimer?.cancel();
+    _barTimer = null;
+    await _window.exitApp();
+  }
+
+  /// The final Done action follows a saved End Work report.
+  Future<void> finishWork() async {
+    _barTimer?.cancel();
+    _barTimer = null;
+    await _window.exitApp();
   }
 
   Future<void> showBar() => _show(FlowScreen.bar, Routes.bar);

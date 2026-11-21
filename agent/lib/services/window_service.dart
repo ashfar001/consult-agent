@@ -217,6 +217,7 @@ class FakeWindowService implements WindowService {
   bool keyboardFocus = false;
   int focusRequests = 0;
   bool exited = false;
+  int exitCalls = 0;
 
   @override
   ValueListenable<DockEdge> get dockEdge => _dockEdge;
@@ -242,5 +243,8 @@ class FakeWindowService implements WindowService {
   }
 
   @override
-  Future<void> exitApp() async => exited = true;
+  Future<void> exitApp() async {
+    exited = true;
+    exitCalls++;
+  }
 }
